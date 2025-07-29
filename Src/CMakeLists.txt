@@ -27,7 +27,7 @@ add_library(CppSandboxLib STATIC
     ${CPP_SANDBOX_HEADERS}
 )
 
-target_include_directories(CppSandboxLib PRIVATE
+target_include_directories(CppSandboxLib PUBLIC
     ${CMAKE_SOURCE_DIR}/Src
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends

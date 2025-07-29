@@ -76,7 +76,7 @@ namespace cppsandbox
         {
             dockInitialized = true;
 
-            ImGui::DockBuilderRemoveNode(dockspaceID);                // clear any previous layout
+            ImGui::DockBuilderRemoveNode(dockspaceID); // clear any previous layout
             ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->WorkSize);
 

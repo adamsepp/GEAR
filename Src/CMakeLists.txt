@@ -7,37 +7,44 @@ file(GLOB IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-# Define the executable and source structure
-add_executable(CppSandbox)
-
-target_sources(CppSandbox
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
-
-        ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
-
-        ${IMGUI_SOURCES}
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
+# Source files excluding main.cpp
+set(CPP_SANDBOX_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
+    ${IMGUI_SOURCES}
 )
 
-# Include directories
-target_include_directories(CppSandbox PRIVATE
+set(CPP_SANDBOX_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
+)
+
+# Create library target
+add_library(CppSandboxLib STATIC
+    ${CPP_SANDBOX_SRC}
+    ${CPP_SANDBOX_HEADERS}
+)
+
+target_include_directories(CppSandboxLib PRIVATE
     ${CMAKE_SOURCE_DIR}/Src
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${glfw_SOURCE_DIR}/include
 )
 
-# Link libraries
-target_link_libraries(CppSandbox PRIVATE
+target_link_libraries(CppSandboxLib PRIVATE
     glfw
-    OpenGL32  # Windows OpenGL lib
+    OpenGL32
 )
+
+# Create main application executable
+add_executable(CppSandbox
+    ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+)
+
+target_link_libraries(CppSandbox PRIVATE CppSandboxLib)
 
 # Windows: disable console window
 if (MSVC)

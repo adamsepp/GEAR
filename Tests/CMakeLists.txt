@@ -13,3 +13,9 @@ target_link_libraries(CppSandboxTests PRIVATE
 )
 
 add_test(NAME LoggerTest COMMAND CppSandboxTests)
+
+if (MSVC)
+    set_target_properties(CppSandboxTests PROPERTIES
+        LINK_FLAGS "/SUBSYSTEM:CONSOLE"
+    )
+endif()

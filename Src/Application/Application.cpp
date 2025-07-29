@@ -59,15 +59,9 @@ namespace cppsandbox
             glfwPollEvents();
 
             guiLayer.BeginFrame();
-
-            // Example ImGui content
-            ImGui::Begin("CppSandbox");
-            ImGui::Text("Hello from the CppSandbox application!");
-            ImGui::End();
-
+            guiLayer.Render();
             guiLayer.EndFrame(window);
             glfwSwapBuffers(window);
         }
     }
-
-} // namespace cppsandbox
+}

@@ -11,6 +11,7 @@ namespace cppsandbox
         void Shutdown();
 
         void BeginFrame();
+        void Render();
         void EndFrame(GLFWwindow* window);
 
     private:

@@ -1,5 +1,6 @@
-#include "GuiLayer.h"
+﻿#include "GuiLayer.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
@@ -12,6 +13,9 @@ namespace cppsandbox
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
         ApplyCustomDarkTheme();
 
@@ -33,15 +37,77 @@ namespace cppsandbox
         ImGui::NewFrame();
     }
 
+    void GuiLayer::Render()
+    {
+        static bool showImGuiDemoWindow = false;
+
+        // Main DockSpace + Menu Bar
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::Begin("MainDockSpace", nullptr, windowFlags);
+        ImGui::PopStyleVar(2);
+
+        ImGuiID dockspaceID = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
+
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("View"))
+            {
+                ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+        ImGui::End();
+
+        // One-time setup of dock layout
+        static bool dockInitialized = false;
+        if (!dockInitialized)
+        {
+            dockInitialized = true;
+
+            ImGui::DockBuilderRemoveNode(dockspaceID);                // clear any previous layout
+            ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->WorkSize);
+
+            // Dock both windows into root -> appear as tabs
+            ImGui::DockBuilderDockWindow("CppSandbox", dockspaceID);
+            ImGui::DockBuilderDockWindow("Dear ImGui Demo", dockspaceID);
+
+            ImGui::DockBuilderFinish(dockspaceID);
+        }
+
+        // Main window content
+        ImGui::Begin("CppSandbox");
+        ImGui::Text("Hello from the CppSandbox application!");
+        ImGui::End();
+
+        if (showImGuiDemoWindow)
+            ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+    }
+
     void GuiLayer::EndFrame(GLFWwindow* window)
     {
+        ImGuiIO& io = ImGui::GetIO();
         ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
     }
 
     void GuiLayer::ApplyCustomDarkTheme()

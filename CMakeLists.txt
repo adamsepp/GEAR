@@ -40,3 +40,17 @@ add_subdirectory(Src)
 # -------------------------------
 enable_testing()
 add_subdirectory(Tests)
+
+# -------------------------------
+# Developer convenience: Show README.md in VS
+# -------------------------------
+set(README_PATH "${CMAKE_SOURCE_DIR}/README.md")
+
+if (MSVC)
+    # Add it to the project as a virtual file
+    source_group("Readme" FILES ${README_PATH})
+    set_property(SOURCE ${README_PATH} PROPERTY VS_TOOL_OVERRIDE "Text")
+
+    # Optional: show README in a dedicated target
+    add_custom_target(ReadmeDisplay ALL SOURCES ${README_PATH})
+endif()

@@ -1,67 +1,55 @@
 # CppSandbox
 
-A modern C++ sandbox application with ImGui, GLFW, and modular architecture.
+A modern modular C++ application using Dear ImGui and GLFW for GUI rendering — no console, just clean UI.
 
 ## ✨ Features
 
-- GUI-only C++ application (no console)
-- GLFW + OpenGL context
-- Dear ImGui GUI loop
-- Modular structure (`Application/`, `Logger/`, `GUI/`, `Tests/`)
-- Built with CMake (cross-platform)
+- 🧩 Modular architecture (`Application/`, `Logger/`, `GUI/`, `Tests/`)
+- 🖼️ Pure GUI app using Dear ImGui + GLFW + OpenGL
+- 📦 All dependencies fetched via `FetchContent` (no manual setup)
+- ⚙️ Built with modern **CMake**, supports **Windows**, **Linux**, and **macOS**
+- 🧪 Ready for Google Test integration (basic test runner scaffolded)
+- ✅ CI with GitHub Actions for cross-platform builds
 
-## 🔧 Building the project with Visual Studio 2022
+## 🔧 Build with Visual Studio 2022 (Windows)
 
 1. Open **Visual Studio 2022**
-2. Go to **File → Open → Folder...**
-3. Select the root folder of this repository (`CppSandbox/`)
-4. Wait for CMake to configure automatically
-5. Open the **CMake Targets** view (if not visible: `View → Other Windows → CMake Targets`)
-6. Right-click the target `CppSandbox` → **Set as Startup Item**
-7. Press **Ctrl+F5** to run (or **F5** to debug)
+2. File → Open → Folder... → Select the `CppSandbox` root
+3. Wait for automatic CMake configuration
+4. Open **CMake Targets** window (View → Other Windows → CMake Targets)
+5. Right-click `CppSandbox` → **Set as Startup Item**
+6. Press **Ctrl+F5** to run (or **F5** to debug)
 
-> 📝 This project uses CMake + Ninja by default (via Visual Studio's built-in support).
+> Visual Studio uses **CMake + Ninja** under the hood.
 
-## 🛠️ Building on Linux/macOS (optional)
+## 🛠️ Build on Linux/macOS
 
-This project is cross-platform and can be built using CMake on:
-
-- ✅ Windows (Visual Studio 2022)
-- ✅ Linux (GCC or Clang)
-- ✅ macOS (Clang + Xcode)
+Requires: `cmake`, `g++/clang`, `OpenGL` and `X11` (on Linux)
 
 ```bash
-# Example for Linux/macOS
-mkdir build
-cd build
+git clone https://github.com/YOUR_USERNAME/CppSandbox.git
+cd CppSandbox
+mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 ./CppSandbox
 ```
 
-## 🗂️ Structure
+> Note: This project uses GLFW + OpenGL. Make sure OpenGL headers and dev packages are available (e.g. `libgl1-mesa-dev` on Linux).
 
-```
-CppSandbox/
-├── Src/
-│   ├── Main.cpp
-│   ├── Application/
-│   ├── Logger/
-│   ├── GUI/
-├── Tests/
-├── External/
-├── .github/workflows/ci.yml
-├── CMakeLists.txt
-```
+## 🧪 Tests
+
+A simple test runner (`Tests`) is scaffolded. GoogleTest integration is planned.
+
+At the moment, it only prints a placeholder message when executed.
 
 ## 📦 Dependencies
 
-- [GLFW](https://github.com/glfw/glfw)
-- [Dear ImGui](https://github.com/ocornut/imgui)
-- (optional) [ImPlot](https://github.com/epezent/implot) — for future graphing features
+- [GLFW](https://github.com/glfw/glfw) – OpenGL context + windowing
+- [Dear ImGui](https://github.com/ocornut/imgui) – Immediate-mode GUI
 
-All dependencies are pulled via `FetchContent` — no manual installation required.
+All dependencies are managed with CMake's `FetchContent`.
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License. See `LICENSE` file for details.
+MIT License – see `LICENSE` for details.

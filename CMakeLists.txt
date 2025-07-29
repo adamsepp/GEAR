@@ -1,33 +1,42 @@
 cmake_minimum_required(VERSION 3.20)
 project(CppSandbox VERSION 0.1 LANGUAGES CXX)
 
+# Enable modern C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Output to /bin folder
+# Set binary output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# -------------------------------
+# Dependencies via FetchContent
+# -------------------------------
 include(FetchContent)
 
 # GLFW
 FetchContent_Declare(
-  GLFW
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG latest
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.3.8  # Use a fixed version for reproducibility
 )
-FetchContent_MakeAvailable(GLFW)
 
 # ImGui
 FetchContent_Declare(
-  ImGui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG docking
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG docking  # Use 'docking' branch or specific release tag
 )
-FetchContent_MakeAvailable(ImGui)
 
-# Add source directory
+# Fetch all declared content
+FetchContent_MakeAvailable(glfw imgui)
+
+# -------------------------------
+# Project subdirectories
+# -------------------------------
 add_subdirectory(Src)
 
-# Optional: Add tests
+# -------------------------------
+# Optional: Unit tests
+# -------------------------------
 enable_testing()
 add_subdirectory(Tests)

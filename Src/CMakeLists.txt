@@ -1,7 +1,4 @@
-# Collect all source files recursively from Src/
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-)
+# CppSandbox/Src/CMakeLists.txt
 
 # ImGui source files (main + backends)
 file(GLOB IMGUI_SOURCES
@@ -10,9 +7,22 @@ file(GLOB IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-add_executable(CppSandbox
-    ${PROJECT_SOURCES}
-    ${IMGUI_SOURCES}
+# Define the executable and source structure
+add_executable(CppSandbox)
+
+target_sources(CppSandbox
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
+
+        ${IMGUI_SOURCES}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
 )
 
 # Include directories

@@ -1,6 +1,7 @@
 #include "Application/Application.h"
 
-int main() {
+int main()
+{
     cppsandbox::Application app;
     app.Run();
     return 0;

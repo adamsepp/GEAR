@@ -1,21 +1,24 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+#include "GUI/GuiLayer.h"
 
-namespace cppsandbox {
+namespace cppsandbox
+{
+    class Application
+    {
+    public:
+        Application();
+        ~Application();
 
-class Application {
-public:
-    Application();
-    ~Application();
+        void Run();
 
-    void Run();
+    private:
+        void Init();
+        void Shutdown();
 
-private:
-    void Init();
-    void Shutdown();
-
-    struct GLFWwindow* m_Window = nullptr;
-};
+    private:
+        GLFWwindow* window = nullptr;
+        GuiLayer guiLayer;
+    };
 
 } // namespace cppsandbox

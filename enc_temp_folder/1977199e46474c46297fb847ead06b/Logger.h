@@ -12,7 +12,7 @@
 class Logger
 {
 public:
-    static constexpr size_t LOG_BUFFER_CAPACITY = 1000;
+    static constexpr size_t LOG_BUFFER_CAPACITY = 100;
 
     template<typename... Args>
     static void Log(LogLevel level, fmt::format_string<Args...> formatStr, Args&&... args)

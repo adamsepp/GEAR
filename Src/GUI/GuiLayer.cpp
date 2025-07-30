@@ -161,6 +161,13 @@ namespace cppsandbox
             ++index;
         }
 
+        if (ImGui::Button("Generate fix string logs"))
+        {
+            std::string fixStringLog = "Fix string log";
+            LOG_DEBUG(fixStringLog);
+            LOG_DEBUG("const char* log");
+        }
+
         if (ImGui::Button("Generate 10k Logs"))
         {
             auto start = std::chrono::high_resolution_clock::now();
@@ -171,7 +178,7 @@ namespace cppsandbox
             auto end = std::chrono::high_resolution_clock::now();
             auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            Logger::Log(LogLevel::Info, "Generated 10,000 logs in {} ms", elapsedMs);
+            LOG_INFO("Generated 10000 logs in {} ms", elapsedMs);
         }
 
         ImGui::End();

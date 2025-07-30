@@ -51,9 +51,25 @@ set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw imgui fmt googletest)
 
 # -------------------------------
+# Platform-specific OpenGL linking
+# -------------------------------
+if (APPLE)
+    find_library(OpenGL_LIBRARY OpenGL)
+    set(OPENGL_LIBS ${OpenGL_LIBRARY})
+elseif (WIN32)
+    set(OPENGL_LIBS opengl32)
+else()
+    find_package(OpenGL REQUIRED)
+    set(OPENGL_LIBS OpenGL::GL)
+endif()
+
+# -------------------------------
 # Project subdirectories
 # -------------------------------
 add_subdirectory(Src)
+
+# Link OpenGL and GLFW in your main target in Src/CMakeLists.txt, e.g.:
+# target_link_libraries(CppSandboxLib PRIVATE glfw ${OPENGL_LIBS} fmt imgui)
 
 # -------------------------------
 # Optional: Unit tests

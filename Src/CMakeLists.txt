@@ -62,10 +62,17 @@ add_executable(CppSandbox
 target_link_libraries(CppSandbox PRIVATE CppSandboxLib)
 
 # Compile options for executable
-target_compile_options(CppSandbox PRIVATE
-    $<$<CONFIG:Debug>:/Zi /Od>       # Debug flags for MSVC
-    $<$<CONFIG:Release>:/O2 /Ot>     # Release flags for MSVC
-)
+if(MSVC)
+    target_compile_options(CppSandbox PRIVATE
+        $<$<CONFIG:Debug>:/Zi /Od>       # Debug Flags MSVC
+        $<$<CONFIG:Release>:/O2 /Ot>     # Release Flags MSVC
+    )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(CppSandbox PRIVATE
+        $<$<CONFIG:Debug>:-g -O0>       # Debug Flags clang/gcc
+        $<$<CONFIG:Release>:-O3>        # Release Flags clang/gcc
+    )
+endif()
 
 # Windows: disable console window
 if (MSVC)

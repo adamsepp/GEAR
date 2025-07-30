@@ -2,7 +2,8 @@
 
 #include <string>
 #include <vector>
-#include <format>
+#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "LogMessage.h"
 #include "CircularLogBuffer.h"
@@ -11,16 +12,19 @@ class Logger
 {
 public:
     template<typename... Args>
-    static void Log(LogLevel level, const std::string& formatStr, Args&&... args)
+    static void Log(LogLevel level, fmt::format_string<Args...> formatStr, Args&&... args)
     {
         try
         {
-            std::string formatted = std::vformat(formatStr, std::make_format_args(args...));
+            std::string formatted = fmt::format(formatStr, std::forward<Args>(args)...);
             PushToBuffer(level, formatted);
         }
-        catch (const std::format_error& e)
+        catch (const fmt::format_error& e)
         {
-            std::string fallback = "[LOG FORMAT ERROR] " + std::string(e.what()) + " | Format: " + formatStr;
+            std::string fallback = "[LOG FORMAT ERROR] ";
+            fallback += e.what();
+            fallback += " | Format: ";
+            fallback += formatStr.get().data();
             PushToBuffer(LogLevel::Error, fallback);
         }
     }

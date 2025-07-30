@@ -39,6 +39,7 @@ target_include_directories(CppSandboxLib PUBLIC
 target_link_libraries(CppSandboxLib PRIVATE
     glfw
     OpenGL32
+    fmt::fmt
 )
 
 # Create main application executable

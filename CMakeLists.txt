@@ -27,8 +27,15 @@ FetchContent_Declare(
     GIT_TAG docking  # Use 'docking' branch or specific release tag
 )
 
+# fmt (C++ formatting library)
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 10.2.1
+)
+
 # Fetch all declared content
-FetchContent_MakeAvailable(glfw imgui)
+FetchContent_MakeAvailable(glfw imgui fmt)
 
 # -------------------------------
 # Project subdirectories

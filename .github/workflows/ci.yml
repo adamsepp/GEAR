@@ -7,14 +7,25 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install dependencies (Ubuntu only)
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install ninja-build
+
+    - name: Install dependencies (macOS only)
+      if: runner.os == 'macOS'
+      run: brew install ninja
+
+    - name: Setup CMake
       uses: lukka/get-cmake@latest
 
     - name: Configure with CMake

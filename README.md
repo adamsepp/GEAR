@@ -24,7 +24,14 @@ Note: Visual Studio uses CMake and Ninja under the hood.
 
 ## Building on Linux or macOS
 
-Make sure the following are installed: `cmake`, `g++` or `clang`, OpenGL, and X11 (on Linux).
+Make sure the following are installed:
+
+- `cmake` (version 3.20 or newer)
+- A modern C++ compiler (`g++` or `clang++`) with C++20 support
+- OpenGL development libraries
+- X11 development libraries (on Linux)
+
+Example build steps:
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/CppSandbox.git
@@ -35,17 +42,22 @@ make
 ./CppSandbox
 ```
 
-> On Linux, you may need additional packages like `libgl1-mesa-dev` or `libx11-dev`.
+> On Linux, you may need additional packages like `libgl1-mesa-dev`, `libx11-dev`, `libxrandr-dev`, `libxi-dev`, `libxinerama-dev` and `libxcursor-dev`.
 
 ## Tests
 
-The project includes a basic test runner with GoogleTest integration scaffolded.
-Currently, only placeholder tests are defined.
+Unit tests are located in the `Tests/` directory and cover key components like the Logger.
 
 ## Dependencies
 
-* [GLFW](https://github.com/glfw/glfw)
-* [Dear ImGui](https://github.com/ocornut/imgui)
+This project uses the following main dependencies, all automatically managed via CMake's `FetchContent`:
+
+* [GLFW](https://github.com/glfw/glfw) — window and input management
+* [Dear ImGui](https://github.com/ocornut/imgui) — immediate mode GUI
+* [fmt](https://github.com/fmtlib/fmt) — modern formatting library
+* [GoogleTest](https://github.com/google/googletest) — testing framework
+
+Additionally, a modern C++ compiler (supporting C++20) and CMake (>= 3.20) are required to build the project.
 
 All dependencies are handled automatically via CMake's `FetchContent`.
 

@@ -48,6 +48,10 @@ make
 
 Unit tests are located in the `Tests/` directory and cover key components like the Logger.
 
+## Documentation
+
+Detailed documentation about the logging system, its architecture, and performance considerations can be found in [Logger.md](./Logger/Logger.md).
+
 ## Dependencies
 
 This project uses the following main dependencies, all automatically managed via CMake's `FetchContent`:

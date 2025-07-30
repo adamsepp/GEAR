@@ -11,6 +11,8 @@
 #include <chrono>
 #include <system_error>
 
+#include "LogMessage.h"
+
 class LogToFile
 {
 public:
@@ -54,11 +56,11 @@ public:
     }
 
     // Thread-safe enqueue of log lines; wakes background thread
-    void Write(const std::string& logLine)
+    void Write(const LogMessage& message)
     {
         {
             std::lock_guard lock(queueMutex);
-            logQueue.push(logLine);
+            logQueue.push(message);
         }
         cv.notify_one();
     }
@@ -72,7 +74,7 @@ private:
     std::ofstream logStream;
     std::mutex fileMutex;   // Protects file operations (open/write/rotate)
 
-    std::queue<std::string> logQueue;
+    std::queue<LogMessage> logQueue;
     std::mutex queueMutex;  // Protects the queue of pending log lines
     std::condition_variable cv;
 
@@ -162,7 +164,7 @@ private:
             while (!logQueue.empty())
             {
                 // Pop next log line from queue
-                std::string line = std::move(logQueue.front());
+                LogMessage msg = std::move(logQueue.front());
                 logQueue.pop();
 
                 // Unlock queue mutex while writing to avoid blocking producers
@@ -176,7 +178,7 @@ private:
                         OpenLogFile();
 
                     // Write log line and flush to ensure persistence
-                    logStream << line << std::endl;
+                    logStream << msg.ToStringForFile() << std::endl;
                     logStream.flush();
 
                     // Check file size and rotate if necessary

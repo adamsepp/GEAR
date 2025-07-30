@@ -1,5 +1,6 @@
 ﻿#include <GLFW/glfw3.h>
 #include <functional>
+#include <chrono>
 
 #include "GuiLayer.h"
 #include "Logger/Logger.h"
@@ -181,6 +182,86 @@ namespace cppsandbox
             LOG_INFO("Generated 10000 logs in {} ms", elapsedMs);
         }
 
+        if (ImGui::Button("Benchmark Logs (10k entries)"))
+        {
+            constexpr int totalLogs = 10000;
+
+            auto logVariants = [&]() {
+                LOG_INFO("Fixed string log");
+                LOG_ERROR("Float value: {:.3f}", 3.14159f);
+                LOG_ERROR("Formatted int and string: {} - {}", 42, "error");
+                LOG_DEBUG("Simple number: {}", 123456);
+                LOG_INFO("Multiple args: {}, {}, {:.2f}", "str", 7, 1.23);
+                };
+
+            // Single-threaded benchmark
+            auto startSingle = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < totalLogs; ++i)
+                logVariants();
+            auto endSingle = std::chrono::high_resolution_clock::now();
+            auto elapsedSingle = std::chrono::duration_cast<std::chrono::milliseconds>(endSingle - startSingle).count();
+
+            // Multi-threaded benchmark with 4 threads
+            constexpr int numThreads = 4;
+            int logsPerThread = totalLogs / numThreads;
+
+            auto startMulti = std::chrono::high_resolution_clock::now();
+            std::vector<std::thread> threads;
+            for (int t = 0; t < numThreads; ++t)
+            {
+                threads.emplace_back([logsPerThread, &logVariants]() {
+                    for (int i = 0; i < logsPerThread; ++i)
+                        logVariants();
+                    });
+            }
+            for (auto& thread : threads)
+                thread.join();
+            auto endMulti = std::chrono::high_resolution_clock::now();
+            auto elapsedMulti = std::chrono::duration_cast<std::chrono::milliseconds>(endMulti - startMulti).count();
+
+            LOG_INFO("Benchmark results: Single-threaded: {} ms, Multi-threaded (4 threads): {} ms", elapsedSingle, elapsedMulti);
+        }
+
+        if (ImGui::Button("Benchmark Logs (10k entries) - No fmt"))
+        {
+            constexpr int totalLogs = 10000;
+
+            auto logVariantsNoFmt = [&]() {
+                LOG_INFO("Fixed string log");
+                LOG_ERROR("Float value: " + std::to_string(3.14159f));
+                LOG_ERROR("Formatted int and string: " + std::to_string(42) + " - error");
+                LOG_DEBUG("Simple number: " + std::to_string(123456));
+                LOG_INFO(std::string("Multiple args: ") + "str, " + std::to_string(7) + ", " + std::to_string(1.23));
+                };
+
+            // Single-threaded benchmark
+            auto startSingle = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < totalLogs; ++i)
+                logVariantsNoFmt();
+            auto endSingle = std::chrono::high_resolution_clock::now();
+            auto elapsedSingle = std::chrono::duration_cast<std::chrono::milliseconds>(endSingle - startSingle).count();
+
+            // Multi-threaded benchmark with 4 threads
+            constexpr int numThreads = 4;
+            int logsPerThread = totalLogs / numThreads;
+
+            auto startMulti = std::chrono::high_resolution_clock::now();
+            std::vector<std::thread> threads;
+            for (int t = 0; t < numThreads; ++t)
+            {
+                threads.emplace_back([logsPerThread, &logVariantsNoFmt]() {
+                    for (int i = 0; i < logsPerThread; ++i)
+                        logVariantsNoFmt();
+                    });
+            }
+            for (auto& thread : threads)
+                thread.join();
+            auto endMulti = std::chrono::high_resolution_clock::now();
+            auto elapsedMulti = std::chrono::duration_cast<std::chrono::milliseconds>(endMulti - startMulti).count();
+
+            LOG_INFO("Benchmark results (no fmt): Single-threaded: " + std::to_string(elapsedSingle) + " ms, Multi - threaded(4 threads) : " + std::to_string(elapsedMulti) + " ms");
+        }
+
         ImGui::End();
     }
 
@@ -212,23 +293,31 @@ namespace cppsandbox
             ImGuiListClipper clipper;
             clipper.Begin(static_cast<int>(logCount));
 
+            auto toImVec4 = [](const LogMessageColor& c) -> ImVec4 {
+                return ImVec4(c.r, c.g, c.b, c.a);
+                };
+
             while (clipper.Step())
             {
                 for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
                 {
-                    // Berechne echten Index im Ringpuffer
+                    // Calculate actual index in the ring buffer
                     size_t bufferIndex = (readIndex + i) % capacity;
                     const LogMessage& msg = buffer[bufferIndex];
+
+                    // Create time string
+                    char timeString[80];
+                    msg.FormatTimestamp(timeString, sizeof(timeString));
 
                     ImGui::TableNextRow();
 
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(msg.levelColor.r, msg.levelColor.g, msg.levelColor.b, msg.levelColor.a));
-                    ImGui::TextUnformatted(msg.levelStr.c_str());
+                    ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(msg.LevelColor()));
+                    ImGui::TextUnformatted(msg.FormatLevel());
                     ImGui::PopStyleColor();
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::TextUnformatted(msg.timeFormatted.c_str());
+                    ImGui::TextUnformatted(timeString);
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::TextUnformatted(msg.message.c_str());

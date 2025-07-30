@@ -3,6 +3,8 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <ctime>
+#include <fmt/core.h>
 
 enum class LogLevel
 {
@@ -12,52 +14,59 @@ enum class LogLevel
     Debug
 };
 
+struct LogMessageColor
+{
+    float r, g, b, a;
+    constexpr LogMessageColor(float r, float g, float b, float a = 1.0f)
+        : r(r), g(g), b(b), a(a) {}
+};
+
 struct LogMessage
 {
-    struct LogMessageColor
-    {
-        float r, g, b, a;
-        constexpr LogMessageColor(float r, float g, float b, float a = 1.0f)
-            : r(r), g(g), b(b), a(a) {}
-    };
-
     LogLevel level;
-    std::string levelStr;
-    LogMessageColor levelColor;
-
     std::chrono::system_clock::time_point timestamp;
-    std::string timeFormatted;
     std::string message;
-    std::thread::id threadId;
 
     LogMessage()
         : level(LogLevel::Info),
-        levelStr("INFO"),
-        levelColor(1, 1, 1, 1),
         timestamp(std::chrono::system_clock::now()),
-        timeFormatted(""),
-        message(""),
-        threadId(std::this_thread::get_id())
+        message("")
     {}
 
     LogMessage(LogLevel level, std::string msg)
         : level(level),
         message(std::move(msg)),
-        levelColor(1, 1, 1, 1),
-        timestamp(std::chrono::system_clock::now()),
-        threadId(std::this_thread::get_id()),
-        timeFormatted(FormatTimestamp(timestamp))
+        timestamp(std::chrono::system_clock::now())
+    {}
+
+    const char* FormatLevel() const
     {
-        SetLevelMeta(level);
+        switch (level)
+        {
+        case LogLevel::Info:    return "INFO";
+        case LogLevel::Warning: return "WARN";
+        case LogLevel::Error:   return "ERROR";
+        case LogLevel::Debug:   return "DEBUG";
+        default:                return "UNKNOWN";
+        }
     }
 
-private:
-    static std::string FormatTimestamp(const std::chrono::system_clock::time_point& tp)
+    LogMessageColor LevelColor() const
     {
-        using namespace std::chrono;
+        switch (level)
+        {
+        case LogLevel::Info:    return { 1, 1, 1, 1 };
+        case LogLevel::Warning: return { 1, 1, 0, 1 };
+        case LogLevel::Error:   return { 1, 0.3f, 0.3f, 1 };
+        case LogLevel::Debug:   return { 0.5f, 0.5f, 1, 1 };
+        default:                return { 0.5, 0.5, 0.5, 0.5 };
+        }
+    }
 
-        auto ms = duration_cast<milliseconds>(tp.time_since_epoch()) % 1000;
-        std::time_t t = system_clock::to_time_t(tp);
+    void FormatTimestamp(char* outBuffer, size_t bufferSize) const
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()) % 1000;
+        std::time_t t = std::chrono::system_clock::to_time_t(timestamp);
         std::tm tm;
 
 #ifdef _WIN32
@@ -66,33 +75,15 @@ private:
         localtime_r(&t, &tm);
 #endif
 
-        char buffer[64];
-        std::strftime(buffer, sizeof(buffer), "[%Y:%m:%d %H:%M:%S", &tm);
-        char result[80];
-        std::snprintf(result, sizeof(result), "%s.%03lld]", buffer, static_cast<long long>(ms.count()));
-        return result;
+        char tempBuffer[64];
+        std::strftime(tempBuffer, sizeof(tempBuffer), "[%Y:%m:%d %H:%M:%S", &tm);
+        std::snprintf(outBuffer, bufferSize, "%s.%03lld]", tempBuffer, static_cast<long long>(ms.count()));
     }
 
-    void SetLevelMeta(LogLevel lvl)
+    std::string ToStringForFile() const
     {
-        switch (lvl)
-        {
-        case LogLevel::Info:
-            levelStr = "INFO";
-            levelColor = { 1, 1, 1, 1 };
-            break;
-        case LogLevel::Warning:
-            levelStr = "WARN";
-            levelColor = { 1, 1, 0, 1 };
-            break;
-        case LogLevel::Error:
-            levelStr = "ERROR";
-            levelColor = { 1, 0.3f, 0.3f, 1 };
-            break;
-        case LogLevel::Debug:
-            levelStr = "DEBUG";
-            levelColor = { 0.5f, 0.5f, 1, 1 };
-            break;
-        }
+        char timeString[80];
+        FormatTimestamp(timeString, sizeof(timeString));
+        return fmt::format("[{0}] {1} {2}", FormatLevel(), timeString, message);
     }
 };

@@ -151,7 +151,8 @@ TEST(LoggerFileTest, SimpleWrite)
     std::getline(file, line);
     file.close();
 
-    ASSERT_EQ(line, "Test line 1");
+    ASSERT_TRUE(line.find("INFO") != std::string::npos);
+    ASSERT_TRUE(line.find("Test line 1") != std::string::npos);
 
     // Clean up test logs after test
     std::filesystem::remove_all(folder);
@@ -171,9 +172,7 @@ TEST(LoggerFileTest, Rotation)
         // Write many large lines to exceed max file size and trigger rotation
         std::string bigLine(1024, 'x');
         for (int i = 0; i < 2000; ++i)
-            logger.Write(bigLine);
-
-        logger.Write(bigLine);
+            logger.Write(LogMessage(LogLevel::Info, std::move(bigLine)));
     } // Logger destroyed here, file handles are closed
 
     auto folderPath = std::filesystem::path(folder);

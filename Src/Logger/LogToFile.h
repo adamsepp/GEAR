@@ -65,6 +65,18 @@ public:
         cv.notify_one();
     }
 
+    // Overload: write by std::string
+    void Write(const std::string& msg)
+    {
+        Write(LogMessage(LogLevel::Info, msg));
+    }
+
+    // Overload: write by const char*
+    void Write(const char* msg)
+    {
+        Write(LogMessage(LogLevel::Info, std::string(msg)));
+    }
+
 private:
     std::string folder;
     std::string filename;

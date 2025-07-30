@@ -50,7 +50,7 @@ Unit tests are located in the `Tests/` directory and cover key components like t
 
 ## Documentation
 
-Detailed documentation about the logging system, its architecture, and performance considerations can be found in [Logger.md](./Logger/Logger.md).
+Detailed documentation about the logging system, its architecture, and performance considerations can be found in [Logger.md](./Src/Logger/Logger.md).
 
 ## Dependencies
 

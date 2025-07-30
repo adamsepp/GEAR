@@ -1,4 +1,4 @@
-# CppSandbox/Src/CMakeLists.txt
+# Src/CMakeLists.txt
 
 # ImGui source files (main + backends)
 file(GLOB IMGUI_SOURCES
@@ -19,9 +19,20 @@ set(CPP_SANDBOX_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
-	${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/CircularLogBuffer.h
 )
+
+# Select platform-specific OpenGL library
+if(APPLE)
+    find_library(OPENGL_LIBRARY OpenGL)
+    set(OPENGL_LIBS ${OPENGL_LIBRARY})
+elseif(WIN32)
+    set(OPENGL_LIBS opengl32)
+else()
+    find_package(OpenGL REQUIRED)
+    set(OPENGL_LIBS OpenGL::GL)
+endif()
 
 # Create library target
 add_library(CppSandboxLib STATIC
@@ -38,7 +49,7 @@ target_include_directories(CppSandboxLib PUBLIC
 
 target_link_libraries(CppSandboxLib PRIVATE
     glfw
-    OpenGL32
+    ${OPENGL_LIBS}
     fmt::fmt
 )
 

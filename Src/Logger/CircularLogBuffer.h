@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <mutex>
-#include <optional>
 
 #include "LogMessage.h"
 
@@ -14,6 +13,8 @@ public:
     {
     }
 
+    // Thread-safe push: writes are synchronized via mutex.
+    // Supports concurrent pushes from multiple threads.
     void Push(const LogMessage& message)
     {
         std::lock_guard<std::mutex> lock(mutex);
@@ -22,36 +23,25 @@ public:
         writeIndex = (writeIndex + 1) % capacity;
 
         if (size < capacity)
-        {
             ++size;
-        }
         else
-        {
-            readIndex = (readIndex + 1) % capacity;  // Overwrite oldest
-        }
+            readIndex = (readIndex + 1) % capacity; // Overwrite oldest
     }
 
-    std::vector<LogMessage> GetSnapshot()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
+    // -------- Read Accessors --------
 
-        std::vector<LogMessage> snapshot;
-        snapshot.reserve(size);
+    // Returns const reference to the internal ring buffer.
+    // Thread-safe if consumer (e.g. GUI) only reads from this vector.
+    // Caller must use GetReadIndex() and GetSize() to iterate in correct order.
+    const std::vector<LogMessage>& GetBuffer() const { return buffer; }
 
-        for (size_t i = 0; i < size; ++i)
-        {
-            size_t index = (readIndex + i) % capacity;
-            snapshot.push_back(buffer[index]);
-        }
+    // Thread-safe: readIndex is only written inside Push() under lock.
+    // Read-only here. On modern 64-bit systems, aligned size_t reads are atomic.
+    size_t GetReadIndex() const { return readIndex; }
 
-        return snapshot;
-    }
-
-    size_t GetSize() const
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        return size;
-    }
+    // Thread-safe: size is only written inside Push() under lock.
+    // Read-only access here is safe and avoids unnecessary locking in GUI thread.
+    size_t GetSize() const { return size; }
 
 private:
     size_t capacity;
@@ -61,5 +51,5 @@ private:
     size_t writeIndex = 0;
     size_t size = 0;
 
-    mutable std::mutex mutex;
+    mutable std::mutex mutex; // protects Push() against concurrent writes
 };

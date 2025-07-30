@@ -1,4 +1,5 @@
 ﻿#include <GLFW/glfw3.h>
+#include <functional>
 
 #include "GuiLayer.h"
 #include "Logger/Logger.h"
@@ -92,11 +93,7 @@ namespace cppsandbox
             ImGui::DockBuilderFinish(dockspaceID);
         }
 
-        // Main window content
-        ImGui::Begin("CppSandbox");
-        ImGui::Text("Hello from the CppSandbox application!");
-        ImGui::End();
-
+        ShowSandboxWindow();
         ShowLoggerWindow();
 
         if (showImGuiDemoWindow)
@@ -141,37 +138,100 @@ namespace cppsandbox
         colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
     }
 
+    void GuiLayer::ShowSandboxWindow()
+    {
+        ImGui::Begin("CppSandbox");
+
+        static const std::vector<std::function<void()>> logActions = {
+            [] { LOG_INFO("Demo: User '{}' logged in.", "Alice"); },
+            [] { LOG_DEBUG("Demo: Loading config file from '{}'.", "config/settings.json"); },
+            [] { LOG_WARN("Demo: Low memory warning: {} MB remaining.", 128); },
+            [] { LOG_ERROR("Demo: Failed to connect to server '{}:{}'", "api.example.com", 443); },
+            [] { LOG_DEBUG("Demo: Initializing module: {}", "AudioEngine"); },
+            [] { LOG_INFO("Demo: FPS counter initialized: {} FPS", 144); },
+            [] { LOG_WARN("Demo: Frame took too long: {:.2f} ms", 45.3f); },
+            [] { LOG_ERROR("Demo: Exception caught: {}", "std::runtime_error(\"Something broke\")"); },
+        };
+
+        static size_t index = 0;
+
+        if (ImGui::Button("Generate Sample Log"))
+        {
+            logActions[index % logActions.size()]();
+            ++index;
+        }
+
+        ImGui::End();
+    }
+
     void GuiLayer::ShowLoggerWindow()
     {
         ImGui::Begin("Logger");
 
-        std::vector<LogMessage> messages = Logger::GetSnapshot();
+        static bool autoScroll = true;
+        ImGui::Checkbox("Auto Scroll", &autoScroll);
 
-        ImGui::BeginChild("LogScrollRegion", ImVec2(0, 0));
+        const auto& buffer = Logger::GetBuffer();
+        const size_t readIndex = Logger::GetReadIndex();
+        const size_t logCount = Logger::GetSize();
+        const size_t capacity = buffer.size();
 
-        for (const LogMessage& msg : messages)
+        constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg;
+        const float availHeight = ImGui::GetContentRegionAvail().y;
+        static float levelWidth = ImGui::CalcTextSize("ERROR").x;
+        static float timeWidth = ImGui::CalcTextSize("[2099:05:23 15:37:51.051]").x;
+
+        if (ImGui::BeginTable("LogTable", 3, tableFlags, ImVec2(0, availHeight)))
         {
-            ImVec4 color;
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, levelWidth);
+            ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, timeWidth);
+            ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableHeadersRow();
 
-            switch (msg.level)
+            ImGuiListClipper clipper;
+            clipper.Begin(static_cast<int>(logCount));
+
+            while (clipper.Step())
             {
-            case LogLevel::Info:    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break;
-            case LogLevel::Warning: color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break;
-            case LogLevel::Error:   color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); break;
-            case LogLevel::Debug:   color = ImVec4(0.5f, 0.5f, 1.0f, 1.0f); break;
+                for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+                {
+                    // Berechne echten Index im Ringpuffer
+                    size_t bufferIndex = (readIndex + i) % capacity;
+                    const LogMessage& msg = buffer[bufferIndex];
+
+                    ImVec4 color;
+                    const char* levelStr = nullptr;
+
+                    switch (msg.level)
+                    {
+                    case LogLevel::Info:    color = ImVec4(1, 1, 1, 1); levelStr = "INFO"; break;
+                    case LogLevel::Warning: color = ImVec4(1, 1, 0, 1); levelStr = "WARN"; break;
+                    case LogLevel::Error:   color = ImVec4(1, 0.3f, 0.3f, 1); levelStr = "ERROR"; break;
+                    case LogLevel::Debug:   color = ImVec4(0.5f, 0.5f, 1, 1); levelStr = "DEBUG"; break;
+                    }
+
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::PushStyleColor(ImGuiCol_Text, color);
+                    ImGui::TextUnformatted(levelStr);
+                    ImGui::PopStyleColor();
+
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(msg.timeFormatted.c_str());
+
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::TextUnformatted(msg.message.c_str());
+                }
             }
 
-            std::time_t time = std::chrono::system_clock::to_time_t(msg.timestamp);
-            std::tm tm = *std::localtime(&time);
-            char timeBuffer[9];
-            std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &tm);
+            if (autoScroll && Logger::ShouldScrollToBottom())
+                ImGui::SetScrollHereY(1.0f);
 
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::Text("[%s] %s", timeBuffer, msg.message.c_str());
-            ImGui::PopStyleColor();
+            ImGui::EndTable();
         }
 
-        ImGui::EndChild();
         ImGui::End();
     }
 }

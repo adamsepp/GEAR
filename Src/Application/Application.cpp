@@ -55,17 +55,7 @@ namespace cppsandbox
 
     void Application::Run()
     {
-        // Log some test entries once before main loop
-        LOG_INFO("[Demo] Application started.");
-        LOG_INFO("[Demo] User '{}' logged in.", "Alice");
-        LOG_DEBUG("[Demo] Loading config file from '{}'.", "config/settings.json");
-        LOG_WARN("[Demo] Low memory warning: {} MB remaining.", 128);
-        LOG_ERROR("[Demo] Failed to connect to server '{}:{}'", "api.example.com", 443);
-        LOG_DEBUG("[Demo] Initializing module: {}", "AudioEngine");
-        LOG_INFO("[Demo] FPS counter initialized: {} FPS", 144);
-        LOG_WARN("[Demo] Frame took too long: {:.2f} ms", 45.3f);
-        LOG_ERROR("[Demo] Exception caught: {}", "std::runtime_error(\"Something broke\")");
-
+        LOG_INFO("Application started.");
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();

@@ -7,6 +7,8 @@ void Logger::PushToBuffer(LogLevel level, const std::string& message)
 
     // Optional: immediate output for dev/debug
     // Write(logMessage);
+
+    scrollToBottom.store(true);
 }
 
 void Logger::Write(const LogMessage& message)
@@ -29,15 +31,6 @@ void Logger::Write(const LogMessage& message)
         break;
     }
 
+    // TODO: write into file later...
     // std::cout << prefix << message.message << std::endl;
-}
-
-std::vector<LogMessage> Logger::GetSnapshot()
-{
-    return logBuffer.GetSnapshot();
-}
-
-size_t Logger::GetLogCount()
-{
-    return logBuffer.GetSize();
 }

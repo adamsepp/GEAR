@@ -11,6 +11,8 @@
 class Logger
 {
 public:
+    static constexpr size_t LOG_BUFFER_CAPACITY = 100;
+
     template<typename... Args>
     static void Log(LogLevel level, fmt::format_string<Args...> formatStr, Args&&... args)
     {
@@ -29,14 +31,18 @@ public:
         }
     }
 
-    static std::vector<LogMessage> GetSnapshot();
-    static size_t GetLogCount();
+    static const std::vector<LogMessage>& GetBuffer() { return logBuffer.GetBuffer(); }
+    static size_t GetReadIndex() { return logBuffer.GetReadIndex(); }
+    static size_t GetSize() { return logBuffer.GetSize(); }
+
+    static bool ShouldScrollToBottom() { return scrollToBottom.exchange(false); } // resets after check
 
 private:
     static void PushToBuffer(LogLevel level, const std::string& message);
     static void Write(const LogMessage& message);
 
-    static inline CircularLogBuffer logBuffer{ 1000 };
+    static inline CircularLogBuffer logBuffer{ LOG_BUFFER_CAPACITY };
+    static inline std::atomic_bool scrollToBottom{ false };
 };
 
 // Logging macros

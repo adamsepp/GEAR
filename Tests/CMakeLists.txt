@@ -10,9 +10,13 @@ target_include_directories(CppSandboxTests PRIVATE
 
 target_link_libraries(CppSandboxTests PRIVATE
     CppSandboxLib
+    fmt::fmt
+    gtest
+    gtest_main
 )
 
-add_test(NAME LoggerTest COMMAND CppSandboxTests)
+include(GoogleTest)
+gtest_discover_tests(CppSandboxTests)
 
 if (MSVC)
     set_target_properties(CppSandboxTests PROPERTIES

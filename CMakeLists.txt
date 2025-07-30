@@ -34,8 +34,21 @@ FetchContent_Declare(
     GIT_TAG 10.2.1
 )
 
+# Google Tests (with Windows Fixes)
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+
+# Fix: Disable pthreads, required for MSVC
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+
 # Fetch all declared content
-FetchContent_MakeAvailable(glfw imgui fmt)
+FetchContent_MakeAvailable(glfw imgui fmt googletest)
 
 # -------------------------------
 # Project subdirectories

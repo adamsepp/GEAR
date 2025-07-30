@@ -61,6 +61,12 @@ add_executable(CppSandbox
 
 target_link_libraries(CppSandbox PRIVATE CppSandboxLib)
 
+# Compile options for executable
+target_compile_options(CppSandbox PRIVATE
+    $<$<CONFIG:Debug>:/Zi /Od>       # Debug flags for MSVC
+    $<$<CONFIG:Release>:/O2 /Ot>     # Release flags for MSVC
+)
+
 # Windows: disable console window
 if (MSVC)
     set_target_properties(CppSandbox PROPERTIES

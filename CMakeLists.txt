@@ -70,9 +70,6 @@ endif()
 # -------------------------------
 add_subdirectory(Src)
 
-# Link OpenGL and GLFW in your main target in Src/CMakeLists.txt, e.g.:
-# target_link_libraries(CppSandboxLib PRIVATE glfw ${OPENGL_LIBS} fmt imgui)
-
 # -------------------------------
 # Optional: Unit tests
 # -------------------------------

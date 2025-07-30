@@ -200,22 +200,11 @@ namespace cppsandbox
                     size_t bufferIndex = (readIndex + i) % capacity;
                     const LogMessage& msg = buffer[bufferIndex];
 
-                    ImVec4 color;
-                    const char* levelStr = nullptr;
-
-                    switch (msg.level)
-                    {
-                    case LogLevel::Info:    color = ImVec4(1, 1, 1, 1); levelStr = "INFO"; break;
-                    case LogLevel::Warning: color = ImVec4(1, 1, 0, 1); levelStr = "WARN"; break;
-                    case LogLevel::Error:   color = ImVec4(1, 0.3f, 0.3f, 1); levelStr = "ERROR"; break;
-                    case LogLevel::Debug:   color = ImVec4(0.5f, 0.5f, 1, 1); levelStr = "DEBUG"; break;
-                    }
-
                     ImGui::TableNextRow();
 
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::PushStyleColor(ImGuiCol_Text, color);
-                    ImGui::TextUnformatted(levelStr);
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(msg.levelColor.r, msg.levelColor.g, msg.levelColor.b, msg.levelColor.a));
+                    ImGui::TextUnformatted(msg.levelStr.c_str());
                     ImGui::PopStyleColor();
 
                     ImGui::TableSetColumnIndex(1);

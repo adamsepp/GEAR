@@ -14,30 +14,41 @@ enum class LogLevel
 
 struct LogMessage
 {
+    struct LogMessageColor
+    {
+        float r, g, b, a;
+        constexpr LogMessageColor(float r, float g, float b, float a = 1.0f)
+            : r(r), g(g), b(b), a(a) {}
+    };
+
     LogLevel level;
+    std::string levelStr;
+    LogMessageColor levelColor;
+
     std::chrono::system_clock::time_point timestamp;
     std::string timeFormatted;
     std::string message;
     std::thread::id threadId;
 
-    // Default constructor
     LogMessage()
         : level(LogLevel::Info),
+        levelStr("INFO"),
+        levelColor(1, 1, 1, 1),
         timestamp(std::chrono::system_clock::now()),
+        timeFormatted(""),
         message(""),
-        threadId(std::this_thread::get_id()),
-        timeFormatted("")
-    {
-    }
+        threadId(std::this_thread::get_id())
+    {}
 
-    // Custom constructor
-    LogMessage(LogLevel level, std::string message)
+    LogMessage(LogLevel level, std::string msg)
         : level(level),
+        message(std::move(msg)),
+        levelColor(1, 1, 1, 1),
         timestamp(std::chrono::system_clock::now()),
-        message(std::move(message)),
         threadId(std::this_thread::get_id()),
         timeFormatted(FormatTimestamp(timestamp))
     {
+        SetLevelMeta(level);
     }
 
 private:
@@ -60,5 +71,28 @@ private:
         char result[80];
         std::snprintf(result, sizeof(result), "%s.%03lld]", buffer, static_cast<long long>(ms.count()));
         return result;
+    }
+
+    void SetLevelMeta(LogLevel lvl)
+    {
+        switch (lvl)
+        {
+        case LogLevel::Info:
+            levelStr = "INFO";
+            levelColor = { 1, 1, 1, 1 };
+            break;
+        case LogLevel::Warning:
+            levelStr = "WARN";
+            levelColor = { 1, 1, 0, 1 };
+            break;
+        case LogLevel::Error:
+            levelStr = "ERROR";
+            levelColor = { 1, 0.3f, 0.3f, 1 };
+            break;
+        case LogLevel::Debug:
+            levelStr = "DEBUG";
+            levelColor = { 0.5f, 0.5f, 1, 1 };
+            break;
+        }
     }
 };

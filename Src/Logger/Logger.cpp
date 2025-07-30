@@ -5,10 +5,10 @@ void Logger::PushToBuffer(LogLevel level, const std::string& message)
     LogMessage logMessage(level, message);
     logBuffer.Push(logMessage);
 
+    scrollToBottom.store(true); // Mark that GUI should scroll to latest log after this push
+
     // Optional: immediate output for dev/debug
     // Write(logMessage);
-
-    scrollToBottom.store(true);
 }
 
 void Logger::Write(const LogMessage& message)

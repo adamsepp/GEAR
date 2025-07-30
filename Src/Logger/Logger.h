@@ -16,19 +16,11 @@ public:
     template<typename... Args>
     static void Log(LogLevel level, fmt::format_string<Args...> formatStr, Args&&... args)
     {
-        try
-        {
-            std::string formatted = fmt::format(formatStr, std::forward<Args>(args)...);
-            PushToBuffer(level, formatted);
-        }
-        catch (const fmt::format_error& e)
-        {
-            std::string fallback = "[LOG FORMAT ERROR] ";
-            fallback += e.what();
-            fallback += " | Format: ";
-            fallback += formatStr.get().data();
-            PushToBuffer(LogLevel::Error, fallback);
-        }
+        // Format string is compile-time checked via fmt::format_string<Args...>.
+        // No additional static_assert or try/catch is needed.
+
+        std::string formatted = fmt::format(formatStr, std::forward<Args>(args)...);
+        PushToBuffer(level, formatted);
     }
 
     static const std::vector<LogMessage>& GetBuffer() { return logBuffer.GetBuffer(); }

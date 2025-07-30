@@ -7,30 +7,17 @@ void Logger::PushToBuffer(LogLevel level, const std::string& message)
 
     scrollToBottom.store(true); // Mark that GUI should scroll to latest log after this push
 
-    // Optional: immediate output for dev/debug
-    // Write(logMessage);
+    Write(logMessage);
 }
 
 void Logger::Write(const LogMessage& message)
 {
-    std::string prefix;
+    // Use the formatted time string from the message
+    const std::string& timeStr = message.timeFormatted;
 
-    switch (message.level)
-    {
-    case LogLevel::Info:
-        prefix = "[INFO] ";
-        break;
-    case LogLevel::Warning:
-        prefix = "[WARNING] ";
-        break;
-    case LogLevel::Error:
-        prefix = "[ERROR] ";
-        break;
-    case LogLevel::Debug:
-        prefix = "[DEBUG] ";
-        break;
-    }
+    // Format a line: "[LEVEL] [Time] Message"
+    std::string logLine = fmt::format("[{0}] [{1}] {2}", message.levelStr, timeStr, message.message);
 
-    // TODO: write into file later...
-    // std::cout << prefix << message.message << std::endl;
+    // Write to the file (fileLogger is a static member in Logger)
+    fileLogger.Write(logLine);
 }

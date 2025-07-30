@@ -1,10 +1,11 @@
-﻿#include "GuiLayer.h"
+﻿#include <GLFW/glfw3.h>
+
+#include "GuiLayer.h"
+#include "Logger/Logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
-
-#include <GLFW/glfw3.h>
 
 namespace cppsandbox
 {
@@ -76,13 +77,17 @@ namespace cppsandbox
         {
             dockInitialized = true;
 
-            ImGui::DockBuilderRemoveNode(dockspaceID); // clear any previous layout
+            ImGui::DockBuilderRemoveNode(dockspaceID);
             ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->WorkSize);
 
-            // Dock both windows into root -> appear as tabs
-            ImGui::DockBuilderDockWindow("CppSandbox", dockspaceID);
-            ImGui::DockBuilderDockWindow("Dear ImGui Demo", dockspaceID);
+            ImGuiID dockMainID = dockspaceID;
+            ImGuiID bottomDockID = ImGui::DockBuilderSplitNode(dockMainID, ImGuiDir_Down, 0.3f, nullptr, &dockMainID);
+            ImGuiID topDockID = dockMainID;
+
+            ImGui::DockBuilderDockWindow("CppSandbox", topDockID);
+            ImGui::DockBuilderDockWindow("Logger", bottomDockID);
+            ImGui::DockBuilderDockWindow("Dear ImGui Demo", topDockID);
 
             ImGui::DockBuilderFinish(dockspaceID);
         }
@@ -91,6 +96,8 @@ namespace cppsandbox
         ImGui::Begin("CppSandbox");
         ImGui::Text("Hello from the CppSandbox application!");
         ImGui::End();
+
+        ShowLoggerWindow();
 
         if (showImGuiDemoWindow)
             ImGui::ShowDemoWindow(&showImGuiDemoWindow);
@@ -132,5 +139,39 @@ namespace cppsandbox
         colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
         colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
         colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+    }
+
+    void GuiLayer::ShowLoggerWindow()
+    {
+        ImGui::Begin("Logger");
+
+        std::vector<LogMessage> messages = Logger::GetSnapshot();
+
+        ImGui::BeginChild("LogScrollRegion", ImVec2(0, 0));
+
+        for (const LogMessage& msg : messages)
+        {
+            ImVec4 color;
+
+            switch (msg.level)
+            {
+            case LogLevel::Info:    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break;
+            case LogLevel::Warning: color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break;
+            case LogLevel::Error:   color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); break;
+            case LogLevel::Debug:   color = ImVec4(0.5f, 0.5f, 1.0f, 1.0f); break;
+            }
+
+            std::time_t time = std::chrono::system_clock::to_time_t(msg.timestamp);
+            std::tm tm = *std::localtime(&time);
+            char timeBuffer[9];
+            std::strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &tm);
+
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::Text("[%s] %s", timeBuffer, msg.message.c_str());
+            ImGui::PopStyleColor();
+        }
+
+        ImGui::EndChild();
+        ImGui::End();
     }
 }

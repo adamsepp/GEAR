@@ -19,6 +19,8 @@ set(CPP_SANDBOX_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Logger/CircularLogBuffer.h
 )
 
 # Create library target

@@ -16,5 +16,6 @@ namespace cppsandbox
 
     private:
         void ApplyCustomDarkTheme();
+        void ShowLoggerWindow();
     };
 }

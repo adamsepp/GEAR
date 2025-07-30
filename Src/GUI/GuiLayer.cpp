@@ -161,6 +161,19 @@ namespace cppsandbox
             ++index;
         }
 
+        if (ImGui::Button("Generate 10k Logs"))
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            for (int i = 0; i < 10000; ++i)
+                Logger::Log(LogLevel::Debug, "Bulk log entry {}", i);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            Logger::Log(LogLevel::Info, "Generated 10,000 logs in {} ms", elapsedMs);
+        }
+
         ImGui::End();
     }
 

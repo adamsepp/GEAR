@@ -3,6 +3,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 
 #include "Logger/Logger.h"
 #include "Logger/LogToFile.h"
@@ -114,19 +115,34 @@ TEST(LoggerTest, LoggingPerformance_MultiThreaded)
 // File Logging Tests
 // ------------------------------
 
+// Generates a unique folder name based on the current thread ID
+// This is important, since tests can run in parallel and would otherwise use the same logfile location
+inline std::string GenerateUniqueLogFolder()
+{
+    auto tid = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << tid;  // thread::id can be streamed directly
+    std::string folderName = "test_logs_" + ss.str();
+
+    // Remove old folder if exists
+    std::filesystem::remove_all(folderName);
+
+    return folderName;
+}
+
 // File Logging: Write a single line and verify content in the log file
 TEST(LoggerFileTest, SimpleWrite)
 {
     // Clean up any existing test logs
-    std::filesystem::remove_all("test_logs");
+    std::string folder = GenerateUniqueLogFolder();
 
     {
-        // Create logger instance and write a test line
-        LogToFile logger("test_logs", "test.log", 1024, 2);
+        // Create logger instance in a specific folder for this test and write a test line
+        LogToFile logger(folder, "test.log", 1024, 2);
         logger.Write("Test line 1");
     } // Logger destroyed here, file handles are closed
 
-    auto path = std::filesystem::path("test_logs") / "test.log";
+    auto path = std::filesystem::path(folder) / "test.log";
     ASSERT_TRUE(std::filesystem::exists(path));
 
     // Read back the line and verify content
@@ -138,27 +154,29 @@ TEST(LoggerFileTest, SimpleWrite)
     ASSERT_EQ(line, "Test line 1");
 
     // Clean up test logs after test
-    std::filesystem::remove_all("test_logs");
+    std::filesystem::remove_all(folder);
 }
 
 // File Logging: Write enough data to trigger rotation and check backups
 TEST(LoggerFileTest, Rotation)
 {
-    std::filesystem::remove_all("test_logs");
+    std::string folder = GenerateUniqueLogFolder();
 
     const size_t maxSizeKB = 1; // small size to trigger rotation quickly
     const int maxBackups = 3;
 
     {
-        LogToFile logger("test_logs", "test.log", maxSizeKB, maxBackups);
+        LogToFile logger(folder, "test.log", maxSizeKB, maxBackups);
 
         // Write many large lines to exceed max file size and trigger rotation
         std::string bigLine(1024, 'x');
         for (int i = 0; i < 2000; ++i)
             logger.Write(bigLine);
+
+        logger.Write(bigLine);
     } // Logger destroyed here, file handles are closed
 
-    auto folderPath = std::filesystem::path("test_logs");
+    auto folderPath = std::filesystem::path(folder);
 
     // Verify that all expected backup files exist
     for (int i = 1; i <= maxBackups; ++i)
@@ -171,16 +189,16 @@ TEST(LoggerFileTest, Rotation)
     auto extraBackupPath = folderPath / ("test.log." + std::to_string(maxBackups + 1));
     ASSERT_FALSE(std::filesystem::exists(extraBackupPath)) << "Unexpected extra backup file found: " << extraBackupPath;
 
-    std::filesystem::remove_all("test_logs");
+    std::filesystem::remove_all(folder);
 }
 
 // File Logging: Test thread safety by logging concurrently from multiple threads
 TEST(LoggerFileTest, ThreadSafety)
 {
-    std::filesystem::remove_all("test_logs");
+    std::string folder = GenerateUniqueLogFolder();
 
     {
-        LogToFile logger("test_logs", "test.log", 10240, 5);
+        LogToFile logger(folder, "test.log", 10240, 5);
 
         // Function that writes many log lines to test concurrency
         auto threadFunc = [&logger]()
@@ -200,9 +218,9 @@ TEST(LoggerFileTest, ThreadSafety)
         t3.join();
     } // Logger destroyed here, file handles are closed
 
-    auto path = std::filesystem::path("test_logs") / "test.log";
+    auto path = std::filesystem::path(folder) / "test.log";
     ASSERT_TRUE(std::filesystem::exists(path));
     ASSERT_GT(std::filesystem::file_size(path), 0);
 
-    std::filesystem::remove_all("test_logs");
+    std::filesystem::remove_all(folder);
 }

@@ -286,6 +286,11 @@ namespace cppsandbox
 		static bool autoScroll = true;
 		ImGui::Checkbox("Auto Scroll", &autoScroll);
 
+		static bool showFilter = false;
+		static ImGuiTextFilter filter;
+		ImGui::SameLine();
+		ImGui::Checkbox("Enable Filter", &showFilter);
+
 		const auto& buffer = Logger::GetBuffer();
 		const size_t readIndex = Logger::GetReadIndex();
 		const size_t logCount = Logger::GetSize();
@@ -295,55 +300,137 @@ namespace cppsandbox
 		const float availHeight = ImGui::GetContentRegionAvail().y;
 		static float levelWidth = ImGui::CalcTextSize("ERROR").x;
 		static float timeWidth = ImGui::CalcTextSize("[2099:05:23 15:37:51.051]").x;
+		float topHeight = showFilter ? (availHeight * 0.66f - ImGui::GetFrameHeightWithSpacing()) : availHeight;
+		static size_t scrollToIndex = SIZE_MAX;
 
-		if (ImGui::BeginTable("LogTable", 3, tableFlags, ImVec2(0, availHeight)))
+		auto toImVec4 = [](const LogMessageColor& c) -> ImVec4 {
+			return ImVec4(c.r, c.g, c.b, c.a);
+			};
+
+		// Main log table (top)
+		if (ImGui::BeginChild("##LogMain", ImVec2(0, topHeight), ImGuiChildFlags_Borders))
 		{
-			ImGui::TableSetupScrollFreeze(0, 1);
-			ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, levelWidth);
-			ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, timeWidth);
-			ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableHeadersRow();
-
-			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(logCount));
-
-			auto toImVec4 = [](const LogMessageColor& c) -> ImVec4 {
-				return ImVec4(c.r, c.g, c.b, c.a);
-				};
-
-			while (clipper.Step())
+			if (ImGui::BeginTable("LogTable", 3, tableFlags))
 			{
-				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+				ImGui::TableSetupScrollFreeze(0, 1);
+				ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, levelWidth);
+				ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, timeWidth);
+				ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableHeadersRow();
+
+				if (scrollToIndex != SIZE_MAX)
 				{
-					// Calculate actual index in the ring buffer
-					size_t bufferIndex = (readIndex + i) % capacity;
-					const LogMessage& msg = buffer[bufferIndex];
+					int relativeRow = static_cast<int>((scrollToIndex + capacity - readIndex) % capacity);
+					float rowHeight = ImGui::GetTextLineHeightWithSpacing();
+					float targetY = relativeRow * rowHeight;
+					float scrollY = std::max(0.0f, targetY - ImGui::GetWindowHeight() * 0.5f + rowHeight); // + rowHeight because of header!
+					ImGui::SetScrollY(scrollY);
+					scrollToIndex = SIZE_MAX;
+				}
 
-					// Create time string
-					char timeString[80];
-					msg.FormatTimestamp(timeString, sizeof(timeString));
+				ImGuiListClipper clipper;
+				clipper.Begin(static_cast<int>(logCount));
 
-					ImGui::TableNextRow();
+				while (clipper.Step())
+				{
+					for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+					{
+						// Calculate actual index in the ring buffer
+						size_t bufferIndex = (readIndex + i) % capacity;
+						const LogMessage& msg = buffer[bufferIndex];
 
-					ImGui::TableSetColumnIndex(0);
-					ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(msg.LevelColor()));
-					ImGui::TextUnformatted(msg.FormatLevel());
-					ImGui::PopStyleColor();
+						// Create time string
+						char timeString[80];
+						msg.FormatTimestamp(timeString, sizeof(timeString));
 
-					ImGui::TableSetColumnIndex(1);
-					ImGui::TextUnformatted(timeString);
+						ImGui::TableNextRow();
 
-					ImGui::TableSetColumnIndex(2);
-					ImGui::TextUnformatted(msg.message.c_str());
+						ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(msg.LevelColor()));
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(msg.FormatLevel());
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::TextUnformatted(timeString);
+
+						ImGui::TableSetColumnIndex(2);
+						ImGui::TextUnformatted(msg.message.c_str());
+
+						ImGui::PopStyleColor();
+					}
+				}
+				if (autoScroll && Logger::ShouldScrollToBottom())
+					ImGui::SetScrollHereY(1.0f);
+				ImGui::EndTable();
+			}
+		}
+		ImGui::EndChild();
+
+		// Filtered log table (bottom)
+		if (showFilter)
+		{
+			filter.Draw("Filter", 200.0f);
+
+			static std::vector<size_t> filteredIndices;
+			filteredIndices.clear();
+
+			if (filter.IsActive())
+			{
+				for (size_t i = 0; i < logCount; ++i)
+				{
+					const size_t index = (readIndex + i) % capacity;
+					const LogMessage& msg = buffer[index];
+					if (filter.PassFilter(msg.message.c_str()))
+						filteredIndices.push_back(index);
 				}
 			}
 
-			if (autoScroll && Logger::ShouldScrollToBottom())
-				ImGui::SetScrollHereY(1.0f);
+			if (ImGui::BeginChild("##Filtered", ImVec2(0, 0), ImGuiChildFlags_Borders))
+			{
+				if (ImGui::BeginTable("FilteredTable", 3, tableFlags))
+				{
+					ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthFixed, levelWidth);
+					ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, timeWidth);
+					ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthStretch);
 
-			ImGui::EndTable();
+					ImGuiListClipper clipper;
+					clipper.Begin(static_cast<int>(filteredIndices.size()));
+
+					while (clipper.Step())
+					{
+						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+						{
+							// Get the filtered entry
+							const size_t index = filteredIndices[i];
+							const LogMessage& msg = buffer[index];
+
+							// Create time string
+							char timeString[80];
+							msg.FormatTimestamp(timeString, sizeof(timeString));
+
+							ImGui::TableNextRow();
+
+							ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(msg.LevelColor()));
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::TextUnformatted(msg.FormatLevel());
+
+							ImGui::TableSetColumnIndex(1);
+							ImGui::TextUnformatted(timeString);
+
+							ImGui::TableSetColumnIndex(2);
+							ImGui::TextUnformatted(msg.message.c_str());
+							if (ImGui::IsItemClicked())
+								scrollToIndex = index;
+
+							ImGui::PopStyleColor();
+						}
+					}
+					ImGui::EndTable();
+				}
+			}
+			ImGui::EndChild();
 		}
-
 		ImGui::End();
 	}
 }

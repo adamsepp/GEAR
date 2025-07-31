@@ -12,7 +12,7 @@
 class Logger
 {
 public:
-	static constexpr size_t LOG_BUFFER_CAPACITY = 1000;
+	static constexpr size_t LOG_BUFFER_CAPACITY = 10000;
 
 	// Just user message --> 'MyFunction(): Some message'
 	template<typename... Args>

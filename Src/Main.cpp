@@ -2,7 +2,7 @@
 
 int main()
 {
-    cppsandbox::Application app;
-    app.Run();
-    return 0;
+	cppsandbox::Application app;
+	app.Run();
+	return 0;
 }

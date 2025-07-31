@@ -182,40 +182,34 @@ namespace cppsandbox
 			LOG_INFO("Generated 10000 logs in {} ms", elapsedMs);
 		}
 
-		if (ImGui::Button("Benchmark Logs (10k entries)"))
+		if (ImGui::Button("Benchmark (fmt-format, total 20k logs)"))
 		{
 			constexpr int totalLogs = 10000;
 
-			auto logVariants = [&]() {
-				// Basic messages (Level 0)
-				LOG_INFO("Fixed string log");
-				LOG_WARN("Another fixed message");
-
-				// Messages with format arguments (Level 0)
-				LOG_DEBUG("Formatted int and string: {} - {}", 42, "debug msg");
-				LOG_ERROR("Float value: {:.3f}", 3.14159f);
-
-				// With object context (Level 1)
-				LOG1_INFO("Sensor", "Basic object log");
-				LOG1_WARN("Engine", "Speed dropped to {} RPM", 850);
-
-				// With object and name (Level 2)
-				LOG2_ERROR("Motor", "Left", "Temp too high");
-				LOG2_DEBUG("Servo", "Right", "Reached position {}", 128);
-
-				// With caller, object, and name (Level 3)
-				LOG3_INFO("Controller", "NodeX", "CamA", "Starting up");
-				LOG3_ERROR("MainLoop", "NodeY", "AxisZ", "Current overload: {}A", 12.5f);
+			auto logVariants = [](int i) {
+				switch (i % 10)
+				{
+				case 0: LOG_INFO("Fixed string log"); break;
+				case 1: LOG_WARN("Another fixed message"); break;
+				case 2: LOG_DEBUG("Formatted int: {}, str: {}", 42, "debug msg"); break;
+				case 3: LOG_ERROR("Float value: {:.3f}", 3.14159f); break;
+				case 4: LOG1_INFO("Sensor", "Basic object log"); break;
+				case 5: LOG1_WARN("Engine", "Speed dropped to {} RPM", 850); break;
+				case 6: LOG2_ERROR("Motor", "Left", "Temp too high"); break;
+				case 7: LOG2_DEBUG("Servo", "Right", "Reached position {}", 128); break;
+				case 8: LOG3_INFO("Controller", "NodeX", "CamA", "Starting up"); break;
+				case 9: LOG3_ERROR("MainLoop", "NodeY", "AxisZ", "Overload: {}A", 12.5f); break;
+				}
 				};
 
-			// Single-threaded benchmark
+			// Single-threaded
 			auto startSingle = std::chrono::high_resolution_clock::now();
 			for (int i = 0; i < totalLogs; ++i)
-				logVariants();
+				logVariants(i);
 			auto endSingle = std::chrono::high_resolution_clock::now();
 			auto elapsedSingle = std::chrono::duration_cast<std::chrono::milliseconds>(endSingle - startSingle).count();
 
-			// Multi-threaded benchmark with 4 threads
+			// Multithreaded
 			constexpr int numThreads = 4;
 			int logsPerThread = totalLogs / numThreads;
 
@@ -223,56 +217,46 @@ namespace cppsandbox
 			std::vector<std::thread> threads;
 			for (int t = 0; t < numThreads; ++t)
 			{
-				threads.emplace_back([logsPerThread, &logVariants]() {
+				threads.emplace_back([=]() {
 					for (int i = 0; i < logsPerThread; ++i)
-						logVariants();
+						logVariants(t * logsPerThread + i);
 					});
 			}
-			for (auto& thread : threads)
-				thread.join();
+			for (auto& thread : threads) thread.join();
 			auto endMulti = std::chrono::high_resolution_clock::now();
 			auto elapsedMulti = std::chrono::duration_cast<std::chrono::milliseconds>(endMulti - startMulti).count();
 
-			LOG_INFO("Benchmark results: Single-threaded: {} ms, Multi-threaded (4 threads): {} ms", elapsedSingle, elapsedMulti);
+			LOG_INFO("Benchmark fmt: Single-threaded: {} ms, Multi-threaded: {} ms", elapsedSingle, elapsedMulti);
 		}
 
-		if (ImGui::Button("Benchmark Logs (10k entries) - No fmt"))
+		if (ImGui::Button("Benchmark (manual concat, total 20k logs)"))
 		{
 			constexpr int totalLogs = 10000;
 
-			auto logVariantsNoFmt = [&]() {
-				// Basic messages (Level 0)
-				LOG_INFO("Fixed string log");
-				LOG_INFO("Another fixed message");
-
-				// Manually constructed strings (Level 0)
-				LOG_ERROR("Float value: " + std::to_string(3.14159f));
-				LOG_DEBUG("Int and string: " + std::to_string(42) + " - debug");
-
-				// Concatenating multiple values (Level 0)
-				LOG_INFO("Multiple values: " + std::string("str, ") + std::to_string(7) + ", " + std::to_string(1.23));
-
-				// With object context (Level 1)
-				LOG1_INFO("Sensor", "Manual object log");
-				LOG1_WARN("Engine", "Speed: " + std::to_string(850) + " RPM");
-
-				// With object and name (Level 2)
-				LOG2_DEBUG("Motor", "Left", "Reached position: " + std::to_string(128));
-				LOG2_ERROR("Heater", "Front", "Temp exceeded 85°C");
-
-				// With caller, object, and name (Level 3)
-				LOG3_INFO("Main", "NodeX", "Cam", "Initializing module");
-				LOG3_ERROR("Loop", "AxisY", "MotorA", "Current spike: " + std::to_string(14.2f) + "A");
+			auto logVariantsNoFmt = [](int i) {
+				switch (i % 10)
+				{
+				case 0: LOG_INFO("Fixed string log"); break;
+				case 1: LOG_WARN("Another fixed message"); break;
+				case 2: LOG_DEBUG("Formatted: " + std::to_string(42) + " - debug"); break;
+				case 3: LOG_ERROR("Float value: " + std::to_string(3.14159f)); break;
+				case 4: LOG1_INFO("Sensor", "Manual object log"); break;
+				case 5: LOG1_WARN("Engine", "Speed: " + std::to_string(850) + " RPM"); break;
+				case 6: LOG2_ERROR("Motor", "Left", "Temp exceeded 85°C"); break;
+				case 7: LOG2_DEBUG("Servo", "Right", "Reached: " + std::to_string(128)); break;
+				case 8: LOG3_INFO("Main", "NodeX", "Cam", "Init module"); break;
+				case 9: LOG3_ERROR("Loop", "AxisY", "MotorA", "Spike: " + std::to_string(12.5f) + "A"); break;
+				}
 				};
 
-			// Single-threaded benchmark
+			// Single-threaded
 			auto startSingle = std::chrono::high_resolution_clock::now();
 			for (int i = 0; i < totalLogs; ++i)
-				logVariantsNoFmt();
+				logVariantsNoFmt(i);
 			auto endSingle = std::chrono::high_resolution_clock::now();
 			auto elapsedSingle = std::chrono::duration_cast<std::chrono::milliseconds>(endSingle - startSingle).count();
 
-			// Multi-threaded benchmark with 4 threads
+			// Multithreaded
 			constexpr int numThreads = 4;
 			int logsPerThread = totalLogs / numThreads;
 
@@ -280,17 +264,16 @@ namespace cppsandbox
 			std::vector<std::thread> threads;
 			for (int t = 0; t < numThreads; ++t)
 			{
-				threads.emplace_back([logsPerThread, &logVariantsNoFmt]() {
+				threads.emplace_back([=]() {
 					for (int i = 0; i < logsPerThread; ++i)
-						logVariantsNoFmt();
+						logVariantsNoFmt(t * logsPerThread + i);
 					});
 			}
-			for (auto& thread : threads)
-				thread.join();
+			for (auto& thread : threads) thread.join();
 			auto endMulti = std::chrono::high_resolution_clock::now();
 			auto elapsedMulti = std::chrono::duration_cast<std::chrono::milliseconds>(endMulti - startMulti).count();
 
-			LOG_INFO("Benchmark results (no fmt): Single-threaded: " + std::to_string(elapsedSingle) + " ms, Multi-threaded (4 threads): " + std::to_string(elapsedMulti) + " ms");
+			LOG_INFO("Benchmark no-fmt: Single-threaded: " + std::to_string(elapsedSingle) + " ms, Multi-threaded: " + std::to_string(elapsedMulti) + " ms");
 		}
 
 		ImGui::End();

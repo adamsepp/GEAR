@@ -55,11 +55,45 @@ public:
 			logStream.close();
 	}
 
-	// Thread-safe enqueue of log lines; wakes background thread
+	//// Thread-safe enqueue of log lines; wakes background thread
+	//void Write(const LogMessage& message)
+	//{
+	//	{
+	//		std::lock_guard lock(queueMutex);
+	//		logQueue.push(message);
+	//	}
+	//	cv.notify_one();
+	//}
+
+	static constexpr size_t MAX_QUEUE_SIZE = 250000;
+	static constexpr size_t CUT_SIZE = 10000;
+
 	void Write(const LogMessage& message)
 	{
 		{
-			std::lock_guard lock(queueMutex);
+			std::unique_lock lock(queueMutex);
+
+			// Check if the queue size exceeds the configured maximum threshold.
+			// If it does, remove a block of the oldest entries to prevent uncontrolled memory growth.
+			if (logQueue.size() >= MAX_QUEUE_SIZE)
+			{
+				// Remove the oldest entries to reduce memory pressure
+				for (size_t i = 0; i < CUT_SIZE && !logQueue.empty(); ++i)
+					logQueue.pop();
+
+				// Force a memory shrink: std::queue/std::deque retains allocated memory even if emptied.
+				// This swap trick resets internal allocations and ensures memory is returned to the allocator.
+				std::queue<LogMessage> shrinked;
+				std::swap(logQueue, shrinked);
+
+				// Push a special log entry to inform that log entries were dropped.
+				logQueue.push(LogMessage{
+					LogLevel::Warning,
+					">>>>>>>> Log queue overflow: oldest entries were dropped and memory was reclaimed. <<<<<<<"
+					});
+			}
+
+			// Push the current log message and notify the consumer thread
 			logQueue.push(message);
 		}
 		cv.notify_one();

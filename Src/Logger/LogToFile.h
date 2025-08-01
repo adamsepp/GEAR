@@ -55,19 +55,9 @@ public:
 			logStream.close();
 	}
 
-	//// Thread-safe enqueue of log lines; wakes background thread
-	//void Write(const LogMessage& message)
-	//{
-	//	{
-	//		std::lock_guard lock(queueMutex);
-	//		logQueue.push(message);
-	//	}
-	//	cv.notify_one();
-	//}
-
+	// Thread-safe enqueue of log lines; wakes background thread
 	static constexpr size_t MAX_QUEUE_SIZE = 250000;
 	static constexpr size_t CUT_SIZE = 10000;
-
 	void Write(const LogMessage& message)
 	{
 		{

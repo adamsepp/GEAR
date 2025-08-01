@@ -77,6 +77,14 @@ enable_testing()
 add_subdirectory(Tests)
 
 # -------------------------------
+# Link stdc++fs only on Linux (not macOS or Windows), for compatibility with GCC < 9
+# -------------------------------
+if (UNIX AND NOT APPLE)
+    target_link_libraries(CppSandbox stdc++fs)
+    target_link_libraries(CppSandboxTests stdc++fs)
+endif()
+
+# -------------------------------
 # Developer convenience: Show README.md in VS
 # -------------------------------
 set(README_PATH "${CMAKE_SOURCE_DIR}/README.md")

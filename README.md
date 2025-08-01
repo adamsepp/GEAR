@@ -26,23 +26,29 @@ Note: Visual Studio uses CMake and Ninja under the hood.
 
 Make sure the following are installed:
 
-- `cmake` (version 3.20 or newer)
-- A modern C++ compiler (`g++` or `clang++`) with C++20 support
+- `cmake` (version 3.20 or newer)  
+  > On Debian-based systems, install with:  
+  > `sudo apt install cmake`
+- A modern C++ compiler with C++20 and std::filesystem support  
+  > On Raspberry Pi OS, `g++-11` is not available by default. Use `clang++-11` instead:  
+  > `sudo apt install clang-11`
 - OpenGL development libraries
-- X11 development libraries (on Linux)
+- X11 development libraries (on Linux)  
+  > For example:  
+  > `sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev`
 
-Example build steps:
+### Example build steps:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/CppSandbox.git
-cd CppSandbox
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
-./CppSandbox
+mkdir -p ~/Projects && cd ~/Projects                                          # Create the "Projects" directory in your home folder if it doesn't exist, then navigate into it
+git clone https://github.com/adamsepp/CppSandbox.git                          # Clone the GitHub repository into a new folder called "CppSandbox"
+cd CppSandbox                                                                 # Navigate into the newly cloned project directory
+mkdir build && cd build                                                       # Create a separate build directory and move into it
+cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/clang++-11 -DCMAKE_BUILD_TYPE=Release  # Run CMake with the correct compiler and Release build type
+make -j$(nproc)                                                               # Compile the project using all available CPU cores for faster builds
+./CppSandbox                                                                  # Run the compiled application
 ```
 
-> On Linux, you may need additional packages like `libgl1-mesa-dev`, `libx11-dev`, `libxrandr-dev`, `libxi-dev`, `libxinerama-dev` and `libxcursor-dev`.
 
 ## Tests
 

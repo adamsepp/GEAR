@@ -80,8 +80,8 @@ add_subdirectory(Tests)
 # Link stdc++fs only on Linux (not macOS or Windows), for compatibility with GCC < 9
 # -------------------------------
 if (UNIX AND NOT APPLE)
-    target_link_libraries(CppSandbox stdc++fs)
-    target_link_libraries(CppSandboxTests stdc++fs)
+    target_link_libraries(CppSandbox PRIVATE stdc++fs)
+    target_link_libraries(CppSandboxTests PRIVATE stdc++fs)
 endif()
 
 # -------------------------------

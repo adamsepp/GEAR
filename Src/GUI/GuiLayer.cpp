@@ -40,40 +40,45 @@ namespace cppsandbox
 		ImGui::NewFrame();
 	}
 
-	void GuiLayer::Render()
+	void GuiLayer::Render(GLFWwindow* window)
 	{
-		static bool showImGuiDemoWindow = false;
+		// Draw cutom title bar
+		RenderCustomTitleBar(window);
 
-		// Main DockSpace + Menu Bar
-		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		// Setup main docking window (below custom title bar)
+		constexpr ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoDocking |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus;
+
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(viewport->WorkPos);
-		ImGui::SetNextWindowSize(viewport->WorkSize);
+
+		// Shift dockspace window down below the custom title bar
+		ImVec2 dockPos = viewport->WorkPos;
+		dockPos.y += titleBarHeight;
+
+		ImVec2 dockSize = viewport->WorkSize;
+		dockSize.y -= titleBarHeight;
+
+		ImGui::SetNextWindowPos(dockPos);
+		ImGui::SetNextWindowSize(dockSize);
 		ImGui::SetNextWindowViewport(viewport->ID);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
 
 		ImGui::Begin("MainDockSpace", nullptr, windowFlags);
-		ImGui::PopStyleVar(2);
+		ImGui::PopStyleVar(1);
 
+		// Create the actual dock space
 		ImGuiID dockspaceID = ImGui::GetID("MyDockSpace");
 		ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
-
-		if (ImGui::BeginMenuBar())
-		{
-			if (ImGui::BeginMenu("View"))
-			{
-				ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
-				ImGui::EndMenu();
-			}
-			ImGui::EndMenuBar();
-		}
 		ImGui::End();
 
-		// One-time setup of dock layout
+		// Initialize docking layout once
 		static bool dockInitialized = false;
 		if (!dockInitialized)
 		{
@@ -81,12 +86,18 @@ namespace cppsandbox
 
 			ImGui::DockBuilderRemoveNode(dockspaceID);
 			ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
-			ImGui::DockBuilderSetNodeSize(dockspaceID, viewport->WorkSize);
 
+			// Match the dock space size to the window (adjusted for title bar)
+			ImVec2 builderSize = viewport->WorkSize;
+			builderSize.y -= titleBarHeight;
+			ImGui::DockBuilderSetNodeSize(dockspaceID, builderSize);
+
+			// Split dock area: top and bottom sections
 			ImGuiID dockMainID = dockspaceID;
 			ImGuiID bottomDockID = ImGui::DockBuilderSplitNode(dockMainID, ImGuiDir_Down, 0.3f, nullptr, &dockMainID);
 			ImGuiID topDockID = dockMainID;
 
+			// Assign windows to dock regions
 			ImGui::DockBuilderDockWindow("CppSandbox", topDockID);
 			ImGui::DockBuilderDockWindow("Logger", bottomDockID);
 			ImGui::DockBuilderDockWindow("Dear ImGui Demo", topDockID);
@@ -94,6 +105,7 @@ namespace cppsandbox
 			ImGui::DockBuilderFinish(dockspaceID);
 		}
 
+		// Render docked windows
 		ShowSandboxWindow();
 		ShowLoggerWindow();
 
@@ -137,6 +149,203 @@ namespace cppsandbox
 		colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 		colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+	}
+
+	void GuiLayer::DrawTopMenuItem(const char* label, const std::function<void()>& contentFn)
+	{
+		static const char* activeTopMenuName = nullptr;
+
+		float paddingX = ImGui::GetStyle().FramePadding.x * 2;
+		ImVec2 labelSize = ImGui::CalcTextSize(label);
+		float buttonHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+		float buttonWidth = labelSize.x + paddingX * 2.0f;
+
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+		ImVec2 size = ImVec2(buttonWidth, buttonHeight);
+
+		bool hovered = ImGui::IsMouseHoveringRect(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+		bool isActive = (activeTopMenuName != nullptr && strcmp(activeTopMenuName, label) == 0);
+
+		// Highlight background if the item is hovered or active
+		if (hovered || isActive)
+		{
+			ImGui::GetWindowDrawList()->AddRectFilled(
+				pos,
+				ImVec2(pos.x + size.x, pos.y + size.y),
+				IM_COL32(60, 60, 60, 255)
+			);
+		}
+
+		// Create an invisible button that responds to input
+		ImGui::InvisibleButton(label, size);
+
+		// Draw the label manually, centered vertically
+		ImGui::SetCursorScreenPos(ImVec2(
+			pos.x + paddingX,
+			pos.y + (buttonHeight - labelSize.y) * 0.5f
+		));
+		ImGui::TextUnformatted(label);
+
+		// Click behavior: toggle the popup
+		if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			if (isActive)
+				activeTopMenuName = nullptr;
+			else
+			{
+				activeTopMenuName = label;
+				ImGui::OpenPopup(label);
+			}
+		}
+
+		// Hover behavior: switch active menu if another is already open
+		if (hovered && activeTopMenuName != nullptr && !isActive)
+		{
+			activeTopMenuName = label;
+			ImGui::OpenPopup(label);
+		}
+
+		// Position the popup directly below the menu item
+		ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y + size.y - 1.0f));
+
+		// Render the popup if it's open
+		if (ImGui::BeginPopup(label))
+		{
+			contentFn();
+			ImGui::EndPopup();
+		}
+		else if (isActive)
+		{
+			// If the popup was closed externally, clear active state
+			activeTopMenuName = nullptr;
+		}
+
+		// Ensure the next menu item is placed on the same line
+		ImGui::SameLine();
+	}
+
+	void GuiLayer::RenderCustomTitleBar(GLFWwindow* window)
+	{
+		// DPI-aware scaling
+		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
+		float logoSize = 32.0f * dpiScale;
+		float padding = 8.0f * dpiScale;
+
+		static bool dragging = false;
+		static ImVec2 dragStartMousePos;
+		static int dragStartWinX, dragStartWinY;
+
+		int winX, winY;
+		glfwGetWindowPos(window, &winX, &winY);
+		int w, h;
+		glfwGetWindowSize(window, &w, &h);
+
+		// Set up title bar window
+		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(winX), static_cast<float>(winY)));
+		ImGui::SetNextWindowSize(ImVec2(static_cast<float>(w), titleBarHeight * dpiScale));
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
+		ImGui::SetNextWindowBgAlpha(1.0f); // Fully opaque background
+
+		ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoDocking;
+
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::Begin("CustomTitleBar", nullptr, flags);
+
+		// Logo placeholder
+		ImGui::SetCursorPos(ImVec2(padding, (titleBarHeight * dpiScale - logoSize) * 0.5f));
+		{
+			ImVec2 logoPos = ImGui::GetCursorScreenPos();
+			ImVec2 logoSizeVec = ImVec2(logoSize, logoSize);
+			ImGui::Dummy(logoSizeVec);
+			ImGui::GetWindowDrawList()->AddRectFilled(
+				logoPos,
+				ImVec2(logoPos.x + logoSizeVec.x, logoPos.y + logoSizeVec.y),
+				IM_COL32(100, 100, 100, 255),
+				4.0f);
+			ImGui::GetWindowDrawList()->AddRect(
+				logoPos,
+				ImVec2(logoPos.x + logoSizeVec.x, logoPos.y + logoSizeVec.y),
+				IM_COL32(50, 50, 50, 255),
+				4.0f);
+			ImVec2 textSize = ImGui::CalcTextSize("T");
+			ImVec2 textPos = ImVec2(
+				logoPos.x + (logoSize - textSize.x) * 0.5f,
+				logoPos.y + (logoSize - textSize.y) * 0.5f);
+			ImGui::GetWindowDrawList()->AddText(textPos, IM_COL32(255, 255, 255, 255), "T");
+		}
+
+		// Align Menue
+		float buttonY = (titleBarHeight * dpiScale - (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f)) * 0.5f;
+		ImGui::SetCursorPosY(buttonY);
+		ImGui::SetCursorPosX(logoSize + 2 * padding);
+
+		// Draw Menues
+		DrawTopMenuItem("File", [&]()
+			{
+				if (ImGui::MenuItem("Exit"))
+					glfwSetWindowShouldClose(window, GLFW_TRUE);
+			});
+
+		// Reset Y for next item — important due to SameLine()
+		ImGui::SetCursorPosY(buttonY);
+		DrawTopMenuItem("View", [&]()
+			{
+				ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
+			});
+
+		// Close button (right-aligned and vertically centered)
+		float closeButtonWidth = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+		float closeButtonHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+
+		ImGui::SetCursorPosY((titleBarHeight * dpiScale - closeButtonHeight) * 0.5f);
+		ImGui::SetCursorPosX(static_cast<float>(w) - closeButtonWidth - padding);
+
+		if (ImGui::Button("X"))
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+		// Dragging logic (only if not over UI items)
+		bool hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+		bool overItem = ImGui::IsAnyItemHovered();
+
+		if (hovered && !overItem && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			dragging = true;
+			dragStartMousePos = ImGui::GetMousePos();
+			dragStartWinX = winX;
+			dragStartWinY = winY;
+		}
+
+		if (dragging && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			dragging = false;
+		}
+
+		if (dragging)
+		{
+			glfwSetWindowPos(window,
+				dragStartWinX + static_cast<int>(ImGui::GetMousePos().x - dragStartMousePos.x),
+				dragStartWinY + static_cast<int>(ImGui::GetMousePos().y - dragStartMousePos.y));
+		}
+
+		// Optional: maximize/restore on double-click
+		if (hovered && !overItem && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		{
+			// TODO: Toggle window maximization state here
+		}
+		// TODO: Minimize button
+
+		// TODO: Implement right-edge window resize via mouse drag
+
+		ImGui::PopStyleColor();
+		ImGui::End();
 	}
 
 	void GuiLayer::ShowSandboxWindow()

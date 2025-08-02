@@ -46,7 +46,7 @@ cd CppSandbox                                                                 # 
 mkdir build && cd build                                                       # Create a separate build directory and move into it
 cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/clang++-11 -DCMAKE_BUILD_TYPE=Release  # Run CMake with the correct compiler and Release build type
 make -j$(nproc)                                                               # Compile the project using all available CPU cores for faster builds
-./CppSandbox                                                                  # Run the compiled application
+LIBGL_ALWAYS_SOFTWARE=1 ./bin/CppSandbox                                      # Run the compiled application with software rendering (for systems without hardware OpenGL)
 ```
 
 

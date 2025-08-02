@@ -34,6 +34,8 @@ namespace cppsandbox
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Hide GLFW title bar, since we draw our own with RenderCustomTitleBar()
+
 		window = glfwCreateWindow(1280, 720, "CppSandbox", nullptr, nullptr);
 		if (!window)
 			throw std::runtime_error("Failed to create GLFW window");
@@ -61,7 +63,7 @@ namespace cppsandbox
 			glfwPollEvents();
 
 			guiLayer.BeginFrame();
-			guiLayer.Render();
+			guiLayer.Render(window);
 			guiLayer.EndFrame(window);
 			glfwSwapBuffers(window);
 		}

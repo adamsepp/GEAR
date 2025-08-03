@@ -45,6 +45,23 @@ namespace cppsandbox
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// ------------------------------------------------------------
+		// Apply pending window move/resize *before* starting the ImGui
+		// frame. ImGui reads and caches window state at NewFrame(),
+		// so changes after that would cause visual glitches or offset
+		// layout during resizing or dragging.
+		// ------------------------------------------------------------
+		if (shouldMoveWindow)
+		{
+			glfwSetWindowPos(window, pendingMoveX, pendingMoveY);
+			shouldMoveWindow = false;
+		}
+		if (shouldResizeWindow)
+		{
+			glfwSetWindowSize(window, pendingResizeW, pendingResizeH);
+			shouldResizeWindow = false;
+		}
+
+		// ------------------------------------------------------------
 		// Begin a new ImGui frame
 		// ------------------------------------------------------------
 		ImGui_ImplOpenGL3_NewFrame();   // Prepare OpenGL3 bindings
@@ -179,7 +196,8 @@ namespace cppsandbox
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
 			GLFWwindow* backup_current_context = glfwGetCurrentContext();
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
@@ -469,9 +487,15 @@ namespace cppsandbox
 			newH = std::max(newH, minSize);
 
 			if (activeEdge == Left || activeEdge == Top || activeEdge == TopLeft || activeEdge == TopRight || activeEdge == BottomLeft)
-				glfwSetWindowPos(window, newX, newY);
+			{
+				shouldMoveWindow = true;
+				pendingMoveX = newX;
+				pendingMoveY = newY;
+			}
 
-			glfwSetWindowSize(window, newW, newH);
+			shouldResizeWindow = true;
+			pendingResizeW = newW;
+			pendingResizeH = newH;
 		}
 
 		if (isResizing && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
@@ -502,10 +526,9 @@ namespace cppsandbox
 
 		if (dragging)
 		{
-			ImVec2 delta = ImVec2(mouse.x - dragStartMousePos.x, mouse.y - dragStartMousePos.y);
-			glfwSetWindowPos(window,
-				dragStartWinX + static_cast<int>(delta.x),
-				dragStartWinY + static_cast<int>(delta.y));
+			shouldMoveWindow = true;
+			pendingMoveX = dragStartWinX + mouse.x - dragStartMousePos.x;
+			pendingMoveY = dragStartWinY + mouse.y - dragStartMousePos.y;
 		}
 
 		// Optional: maximize/restore on double-click

@@ -27,5 +27,11 @@ namespace cppsandbox
 		void ShowLoggerWindow();
 
 		bool showImGuiDemoWindow = false;
+
+		// Helper to move / resize window
+		bool shouldMoveWindow = false;
+		int pendingMoveX = 0, pendingMoveY = 0;
+		bool shouldResizeWindow = false;
+		int pendingResizeW = 0, pendingResizeH = 0;
 	};
 }

@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include "GuiLayer.h"
+#include "GuiMath.h"
 #include "Logger/Logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -95,7 +96,7 @@ namespace cppsandbox
 		// Draw filled background
 		drawList->AddRectFilled(
 			pos,
-			ImVec2(pos.x + size.x, pos.y + size.y),
+			pos + size,
 			bgColor,
 			rounding,
 			drawFlags
@@ -106,7 +107,7 @@ namespace cppsandbox
 		{
 			drawList->AddRect(
 				pos,
-				ImVec2(pos.x + size.x, pos.y + size.y),
+				pos + size,
 				ImGui::GetColorU32(ImGuiCol_Border),
 				rounding,
 				drawFlags,
@@ -241,7 +242,7 @@ namespace cppsandbox
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImVec2 size = ImVec2(buttonWidth, buttonHeight);
 
-		bool hovered = ImGui::IsMouseHoveringRect(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+		bool hovered = ImGui::IsMouseHoveringRect(pos, pos + size);
 		bool isActive = (activeTopMenuName != nullptr && strcmp(activeTopMenuName, label) == 0);
 
 		// Highlight background if the item is hovered or active
@@ -249,7 +250,7 @@ namespace cppsandbox
 		{
 			ImGui::GetWindowDrawList()->AddRectFilled(
 				pos,
-				ImVec2(pos.x + size.x, pos.y + size.y),
+				pos + size,
 				IM_COL32(60, 60, 60, 255)
 			);
 		}
@@ -341,12 +342,12 @@ namespace cppsandbox
 			ImGui::Dummy(logoSizeVec);
 			ImGui::GetWindowDrawList()->AddRectFilled(
 				logoPos,
-				ImVec2(logoPos.x + logoSizeVec.x, logoPos.y + logoSizeVec.y),
+				logoPos + logoSizeVec,
 				IM_COL32(100, 100, 100, 255),
 				4.0f);
 			ImGui::GetWindowDrawList()->AddRect(
 				logoPos,
-				ImVec2(logoPos.x + logoSizeVec.x, logoPos.y + logoSizeVec.y),
+				logoPos + logoSizeVec,
 				IM_COL32(50, 50, 50, 255),
 				4.0f);
 			ImVec2 textSize = ImGui::CalcTextSize("T");
@@ -463,7 +464,7 @@ namespace cppsandbox
 
 		if (isResizing && ImGui::IsMouseDown(ImGuiMouseButton_Left))
 		{
-			ImVec2 delta = ImVec2(mouse.x - resizeStartMouse.x, mouse.y - resizeStartMouse.y);
+			ImVec2 delta = mouse - resizeStartMouse;
 			int newX = resizeStartX;
 			int newY = resizeStartY;
 			int newW = resizeStartW;

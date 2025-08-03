@@ -53,7 +53,7 @@ namespace cppsandbox
 
 		// ------------------------------------------------------------
 		// Draw a rounded window background behind all ImGui windows,
-		// unless the GLFW window is maximized, in which case use no rounding.
+		// unless the GLFW window is maximized, or the platform doesn't support it (e.g. Linux without compositor).
 		// ------------------------------------------------------------
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImDrawList* drawList = ImGui::GetBackgroundDrawList(const_cast<ImGuiViewport*>(viewport));
@@ -61,22 +61,31 @@ namespace cppsandbox
 		ImVec2 pos = viewport->Pos;
 		ImVec2 size = viewport->Size;
 
-		// Query if the window is maximized
 		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
 
+		// ---------------- Platform-dependent Rounding ----------------
+#if defined(__linux__)
+	// Disable rounding under Linux (transparency often unsupported)
+		float rounding = 0.0f;
+		ImDrawFlags drawFlags = ImDrawFlags_None;
+#else
 		float rounding = isMaximized ? 0.0f : 8.0f;
 		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
+#endif
+
 		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
+
+		// Draw filled background
 		drawList->AddRectFilled(
 			pos,
 			ImVec2(pos.x + size.x, pos.y + size.y),
-			ImGui::GetColorU32(ImGuiCol_WindowBg),
+			bgColor,
 			rounding,
 			drawFlags
 		);
 
-		// Optional border
-		if (!isMaximized)
+		// Optional border for non-maximized windows
+		if (!isMaximized && drawFlags != ImDrawFlags_None)
 		{
 			drawList->AddRect(
 				pos,
@@ -84,7 +93,7 @@ namespace cppsandbox
 				ImGui::GetColorU32(ImGuiCol_Border),
 				rounding,
 				drawFlags,
-				1.0f  // border thickness
+				1.0f // border thickness
 			);
 		}
 	}

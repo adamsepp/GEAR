@@ -33,11 +33,60 @@ namespace cppsandbox
 		ImGui::DestroyContext();
 	}
 
-	void GuiLayer::BeginFrame()
+	void GuiLayer::BeginFrame(GLFWwindow* window)
 	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+		// ------------------------------------------------------------
+		// Clear the framebuffer with a fully transparent background.
+		// This is necessary when using a transparent GLFW window
+		// (glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE))
+		// and drawing your own rounded background via ImGui.
+		// ------------------------------------------------------------
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // RGBA: fully transparent
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// ------------------------------------------------------------
+		// Begin a new ImGui frame
+		// ------------------------------------------------------------
+		ImGui_ImplOpenGL3_NewFrame();   // Prepare OpenGL3 bindings
+		ImGui_ImplGlfw_NewFrame();      // Prepare GLFW input bindings
+		ImGui::NewFrame();              // Begin ImGui frame logic
+
+		// ------------------------------------------------------------
+		// Draw a rounded window background behind all ImGui windows,
+		// unless the GLFW window is maximized, in which case use no rounding.
+		// ------------------------------------------------------------
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImDrawList* drawList = ImGui::GetBackgroundDrawList(const_cast<ImGuiViewport*>(viewport));
+
+		ImVec2 pos = viewport->Pos;
+		ImVec2 size = viewport->Size;
+
+		// Query if the window is maximized
+		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+
+		float rounding = isMaximized ? 0.0f : 8.0f;
+		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
+		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
+		drawList->AddRectFilled(
+			pos,
+			ImVec2(pos.x + size.x, pos.y + size.y),
+			ImGui::GetColorU32(ImGuiCol_WindowBg),
+			rounding,
+			drawFlags
+		);
+
+		// Optional border
+		if (!isMaximized)
+		{
+			drawList->AddRect(
+				pos,
+				ImVec2(pos.x + size.x, pos.y + size.y),
+				ImGui::GetColorU32(ImGuiCol_Border),
+				rounding,
+				drawFlags,
+				1.0f  // border thickness
+			);
+		}
 	}
 
 	void GuiLayer::Render(GLFWwindow* window)
@@ -47,6 +96,7 @@ namespace cppsandbox
 
 		// Setup main docking window (below custom title bar)
 		constexpr ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoDocking |
 			ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoCollapse |
@@ -67,8 +117,9 @@ namespace cppsandbox
 		ImGui::SetNextWindowPos(dockPos);
 		ImGui::SetNextWindowSize(dockSize);
 		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background, since we use a global rounded background
 
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, 2.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(3.0f, 3.0f));
 
 		ImGui::Begin("MainDockSpace", nullptr, windowFlags);
 		ImGui::PopStyleVar(1);
@@ -228,8 +279,8 @@ namespace cppsandbox
 	{
 		// DPI-aware values
 		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
-		float logoSize = 32.0f * dpiScale;
 		float padding = 8.0f * dpiScale;
+		float logoSize = (titleBarHeight - 10.0f) * dpiScale; // Dynamically scale logo with title bar height
 
 		int winX, winY;
 		glfwGetWindowPos(window, &winX, &winY);
@@ -240,19 +291,19 @@ namespace cppsandbox
 		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(winX), static_cast<float>(winY)));
 		ImGui::SetNextWindowSize(ImVec2(static_cast<float>(w), titleBarHeight * dpiScale));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		ImGui::SetNextWindowBgAlpha(1.0f); // Fully opaque background
+		ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background, since we use a global rounded background
 
 		ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav |
 			ImGuiWindowFlags_NoBringToFrontOnFocus |
 			ImGuiWindowFlags_NoDocking;
 
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 		ImGui::Begin("CustomTitleBar", nullptr, flags);
 
 		// Logo placeholder
@@ -455,7 +506,6 @@ namespace cppsandbox
 		}
 
 		ImGui::End();
-		ImGui::PopStyleColor();
 	}
 
 	void GuiLayer::ShowSandboxWindow()

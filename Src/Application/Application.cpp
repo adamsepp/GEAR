@@ -34,7 +34,11 @@ namespace cppsandbox
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Hide GLFW title bar, since we draw our own with RenderCustomTitleBar()
+		// Hide GLFW title bar, since we draw our own with RenderCustomTitleBar()
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
+		// Make the framebuffer transparent, since we will draw our own edge-rounded background
+		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
 		window = glfwCreateWindow(1280, 720, "CppSandbox", nullptr, nullptr);
 		if (!window)
@@ -62,9 +66,10 @@ namespace cppsandbox
 		{
 			glfwPollEvents();
 
-			guiLayer.BeginFrame();
+			guiLayer.BeginFrame(window);
 			guiLayer.Render(window);
 			guiLayer.EndFrame(window);
+
 			glfwSwapBuffers(window);
 		}
 	}

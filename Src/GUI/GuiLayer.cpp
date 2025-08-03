@@ -67,12 +67,10 @@ namespace cppsandbox
 #if defined(__linux__)
 	// Disable rounding under Linux (transparency often unsupported)
 		float rounding = 0.0f;
-		ImDrawFlags drawFlags = ImDrawFlags_None;
 #else
 		float rounding = isMaximized ? 0.0f : 8.0f;
-		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 #endif
-
+		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
 
 		// Draw filled background

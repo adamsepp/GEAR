@@ -226,14 +226,10 @@ namespace cppsandbox
 
 	void GuiLayer::RenderCustomTitleBar(GLFWwindow* window)
 	{
-		// DPI-aware scaling
+		// DPI-aware values
 		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
 		float logoSize = 32.0f * dpiScale;
 		float padding = 8.0f * dpiScale;
-
-		static bool dragging = false;
-		static ImVec2 dragStartMousePos;
-		static int dragStartWinX, dragStartWinY;
 
 		int winX, winY;
 		glfwGetWindowPos(window, &winX, &winY);
@@ -282,7 +278,7 @@ namespace cppsandbox
 			ImGui::GetWindowDrawList()->AddText(textPos, IM_COL32(255, 255, 255, 255), "T");
 		}
 
-		// Align Menue
+		// Draw menu items
 		float buttonY = (titleBarHeight * dpiScale - (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f)) * 0.5f;
 		ImGui::SetCursorPosY(buttonY);
 		ImGui::SetCursorPosX(logoSize + 2 * padding);
@@ -301,6 +297,9 @@ namespace cppsandbox
 				ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
 			});
 
+		// TODO: Minimize button
+		// TODO: maximize/restore button
+
 		// Close button (right-aligned and vertically centered)
 		float closeButtonWidth = ImGui::CalcTextSize("X").x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		float closeButtonHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
@@ -311,11 +310,126 @@ namespace cppsandbox
 		if (ImGui::Button("X"))
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
 
-		// Dragging logic (only if not over UI items)
+		// ==== Resizing logic ====
+
+		const float resizeBorder = 5.0f;
+		ImVec2 mouse = ImGui::GetMousePos();
+
+		enum ResizeEdge {
+			None,
+			Left, Right, Top, Bottom,
+			TopLeft, TopRight, BottomLeft, BottomRight
+		};
+
+		ResizeEdge hoveredEdge = ResizeEdge::None;
+
+		// Detect edge or corner
+		if (mouse.x >= winX && mouse.x <= winX + resizeBorder)
+		{
+			if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+				hoveredEdge = TopLeft;
+			else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+				hoveredEdge = BottomLeft;
+			else
+				hoveredEdge = Left;
+		}
+		else if (mouse.x >= winX + w - resizeBorder && mouse.x <= winX + w)
+		{
+			if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+				hoveredEdge = TopRight;
+			else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+				hoveredEdge = BottomRight;
+			else
+				hoveredEdge = Right;
+		}
+		else if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+		{
+			hoveredEdge = Top;
+		}
+		else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+		{
+			hoveredEdge = Bottom;
+		}
+
+		// Set resize cursor
+		switch (hoveredEdge)
+		{
+		case TopLeft:
+		case BottomRight: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break;
+		case TopRight:
+		case BottomLeft:  ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break;
+		case Left:
+		case Right:       ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);   break;
+		case Top:
+		case Bottom:      ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);   break;
+		default: break;
+		}
+
+		// Handle resizing
+		static bool isResizing = false;
+		static ResizeEdge activeEdge = None;
+		static ImVec2 resizeStartMouse;
+		static int resizeStartX = 0, resizeStartY = 0;
+		static int resizeStartW = 0, resizeStartH = 0;
+
+		if (hoveredEdge != None && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			isResizing = true;
+			activeEdge = hoveredEdge;
+			resizeStartMouse = mouse;
+			resizeStartX = winX;
+			resizeStartY = winY;
+			resizeStartW = w;
+			resizeStartH = h;
+		}
+
+		if (isResizing && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			ImVec2 delta = ImVec2(mouse.x - resizeStartMouse.x, mouse.y - resizeStartMouse.y);
+			int newX = resizeStartX;
+			int newY = resizeStartY;
+			int newW = resizeStartW;
+			int newH = resizeStartH;
+			const int minSize = 100;
+
+			switch (activeEdge)
+			{
+			case Left:        newX += (int)delta.x; newW -= (int)delta.x; break;
+			case Right:       newW += (int)delta.x; break;
+			case Top:         newY += (int)delta.y; newH -= (int)delta.y; break;
+			case Bottom:      newH += (int)delta.y; break;
+			case TopLeft:     newX += (int)delta.x; newY += (int)delta.y; newW -= (int)delta.x; newH -= (int)delta.y; break;
+			case TopRight:    newY += (int)delta.y; newW += (int)delta.x; newH -= (int)delta.y; break;
+			case BottomLeft:  newX += (int)delta.x; newW -= (int)delta.x; newH += (int)delta.y; break;
+			case BottomRight: newW += (int)delta.x; newH += (int)delta.y; break;
+			default: break;
+			}
+
+			newW = std::max(newW, minSize);
+			newH = std::max(newH, minSize);
+
+			if (activeEdge == Left || activeEdge == Top || activeEdge == TopLeft || activeEdge == TopRight || activeEdge == BottomLeft)
+				glfwSetWindowPos(window, newX, newY);
+
+			glfwSetWindowSize(window, newW, newH);
+		}
+
+		if (isResizing && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			isResizing = false;
+			activeEdge = None;
+		}
+
+		// ==== Dragging (only when not resizing) ====
+
+		static bool dragging = false;
+		static ImVec2 dragStartMousePos;
+		static int dragStartWinX, dragStartWinY;
 		bool hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
 		bool overItem = ImGui::IsAnyItemHovered();
+		bool inResizeZone = hoveredEdge != None;
 
-		if (hovered && !overItem && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		if (!isResizing && !inResizeZone && hovered && !overItem && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		{
 			dragging = true;
 			dragStartMousePos = ImGui::GetMousePos();
@@ -324,28 +438,24 @@ namespace cppsandbox
 		}
 
 		if (dragging && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
-		{
 			dragging = false;
-		}
 
 		if (dragging)
 		{
+			ImVec2 delta = ImVec2(mouse.x - dragStartMousePos.x, mouse.y - dragStartMousePos.y);
 			glfwSetWindowPos(window,
-				dragStartWinX + static_cast<int>(ImGui::GetMousePos().x - dragStartMousePos.x),
-				dragStartWinY + static_cast<int>(ImGui::GetMousePos().y - dragStartMousePos.y));
+				dragStartWinX + static_cast<int>(delta.x),
+				dragStartWinY + static_cast<int>(delta.y));
 		}
 
 		// Optional: maximize/restore on double-click
-		if (hovered && !overItem && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		if (!isResizing && !inResizeZone && hovered && !overItem && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 		{
 			// TODO: Toggle window maximization state here
 		}
-		// TODO: Minimize button
 
-		// TODO: Implement right-edge window resize via mouse drag
-
-		ImGui::PopStyleColor();
 		ImGui::End();
+		ImGui::PopStyleColor();
 	}
 
 	void GuiLayer::ShowSandboxWindow()

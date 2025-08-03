@@ -65,14 +65,14 @@ namespace cppsandbox
 
 		// ---------------- Platform-dependent Rounding ----------------
 #if defined(__linux__)
-	// Disable rounding under Linux (transparency often unsupported)
+		// Rounded corners are disabled on Linux for now, because transparency support
+		// (e.g. via compositing or 32-bit visual) is not guaranteed and often fails
+		// TODO: Detect compositor or enable rounding if supported (e.g. with Wayland or picom) - currently disabled in CMakeLists
 		float rounding = 0.0f;
-		ImDrawFlags drawFlags = ImDrawFlags_None;
 #else
 		float rounding = isMaximized ? 0.0f : 8.0f;
-		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 #endif
-
+		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
 
 		// Draw filled background

@@ -21,6 +21,9 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG 3.4  # Use a fixed version for reproducibility
 )
+# Set GLFW options before making it available
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 
 # ImGui
 FetchContent_Declare(

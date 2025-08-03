@@ -6,7 +6,7 @@ struct GLFWwindow;
 
 namespace cppsandbox
 {
-	constexpr float titleBarHeight = 40.0f;
+	constexpr float titleBarHeight = 32.0f; // Windows Standard
 
 	class GuiLayer
 	{

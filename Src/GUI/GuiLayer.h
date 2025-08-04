@@ -29,6 +29,7 @@ namespace cppsandbox
 		bool showImGuiDemoWindow = false;
 
 		// Helper to move / resize window
+		bool shouldRestoreWindow = false;
 		bool shouldMoveWindow = false;
 		int pendingMoveX = 0, pendingMoveY = 0;
 		bool shouldResizeWindow = false;

@@ -83,7 +83,7 @@ private:
 	static inline CircularLogBuffer logBuffer{ LOG_BUFFER_CAPACITY };
 	static inline std::atomic_bool scrollToBottom{ false };
 
-	static inline LogToFile fileLogger{ "./Log", "CppSandbox.log", 10240, 5 };
+	static inline LogToFile fileLogger{ "./Log", "Gear.log", 1024 * 1024, 5 }; // 1 MB
 };
 
 // Logging macros

@@ -10,7 +10,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-namespace cppsandbox
+namespace gear
 {
 	void GuiLayer::Init(GLFWwindow* window)
 	{
@@ -182,7 +182,7 @@ namespace cppsandbox
 			ImGuiID topDockID = dockMainID;
 
 			// Assign windows to dock regions
-			ImGui::DockBuilderDockWindow("CppSandbox", topDockID);
+			ImGui::DockBuilderDockWindow("Main", topDockID);
 			ImGui::DockBuilderDockWindow("Logger", bottomDockID);
 			ImGui::DockBuilderDockWindow("Dear ImGui Demo", topDockID);
 
@@ -190,7 +190,7 @@ namespace cppsandbox
 		}
 
 		// Render docked windows
-		ShowSandboxWindow();
+		ShowMainWindow();
 		ShowLoggerWindow();
 
 		if (showImGuiDemoWindow)
@@ -713,9 +713,9 @@ namespace cppsandbox
 		ImGui::End();
 	}
 
-	void GuiLayer::ShowSandboxWindow()
+	void GuiLayer::ShowMainWindow()
 	{
-		ImGui::Begin("CppSandbox");
+		ImGui::Begin("Main");
 
 		static const std::vector<std::function<void()>> logActions = {
 			[] { LOG_INFO("Demo: User '{}' logged in.", "Alice"); },

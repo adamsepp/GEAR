@@ -8,14 +8,14 @@ file(GLOB IMGUI_SOURCES
 )
 
 # Source files excluding main.cpp
-set(CPP_SANDBOX_SRC
+set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
     ${IMGUI_SOURCES}
 )
 
-set(CPP_SANDBOX_HEADERS
+set(CPP_GEAR_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiMath.h
@@ -36,40 +36,40 @@ else()
     set(OPENGL_LIBS OpenGL::GL)
 endif()
 
-# Create library target
-add_library(CppSandboxLib STATIC
-    ${CPP_SANDBOX_SRC}
-    ${CPP_SANDBOX_HEADERS}
+# Core library target
+add_library(GearLib STATIC
+    ${CPP_GEAR_SRC}
+    ${CPP_GEAR_HEADERS}
 )
 
-target_include_directories(CppSandboxLib PUBLIC
+target_include_directories(GearLib PUBLIC
     ${CMAKE_SOURCE_DIR}/Src
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${glfw_SOURCE_DIR}/include
 )
 
-target_link_libraries(CppSandboxLib PRIVATE
+target_link_libraries(GearLib PRIVATE
     glfw
     ${OPENGL_LIBS}
     fmt::fmt
 )
 
-# Create main application executable
-add_executable(CppSandbox
+# Main application executable
+add_executable(Gear
     ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
 )
 
-target_link_libraries(CppSandbox PRIVATE CppSandboxLib)
+target_link_libraries(Gear PRIVATE GearLib)
 
-# Compile options for executable
+# Compile options
 if(MSVC)
-    target_compile_options(CppSandbox PRIVATE
+    target_compile_options(Gear PRIVATE
         $<$<CONFIG:Debug>:/Zi /Od>       # Debug Flags MSVC
         $<$<CONFIG:Release>:/O2 /Ot>     # Release Flags MSVC
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(CppSandbox PRIVATE
+    target_compile_options(Gear PRIVATE
         $<$<CONFIG:Debug>:-g -O0>       # Debug Flags clang/gcc
         $<$<CONFIG:Release>:-O3>        # Release Flags clang/gcc
     )
@@ -77,7 +77,7 @@ endif()
 
 # Windows: disable console window
 if (MSVC)
-    set_target_properties(CppSandbox PROPERTIES
+    set_target_properties(Gear PROPERTIES
         LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
     )
 endif()

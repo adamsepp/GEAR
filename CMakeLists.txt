@@ -1,7 +1,7 @@
 # CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.20)
-project(CppSandbox VERSION 0.1 LANGUAGES CXX)
+project(GEAR VERSION 0.1 LANGUAGES CXX)
 
 # Enable modern C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -16,20 +16,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include(FetchContent)
 
 # GLFW
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG 3.4  # Use a fixed version for reproducibility
+    GIT_TAG 3.4
 )
-# Set GLFW options before making it available
-set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 
 # ImGui
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG docking  # Use 'docking' branch or specific release tag
+    GIT_TAG docking
 )
 
 # fmt (C++ formatting library)
@@ -39,18 +38,16 @@ FetchContent_Declare(
     GIT_TAG 10.2.1
 )
 
-# Google Tests (with Windows Fixes)
+# Google Test
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG v1.14.0
 )
-
-# Fix: Disable pthreads, required for MSVC
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 
 # Fetch all declared content
 FetchContent_MakeAvailable(glfw imgui fmt googletest)
@@ -76,15 +73,20 @@ add_subdirectory(Src)
 # -------------------------------
 # Optional: Unit tests
 # -------------------------------
-enable_testing()
-add_subdirectory(Tests)
+option(BUILD_TESTS "Build unit tests" ON)
+if (BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(Tests)
+endif()
 
 # -------------------------------
 # Link stdc++fs only on Linux (not macOS or Windows), for compatibility with GCC < 9
 # -------------------------------
 if (UNIX AND NOT APPLE)
-    target_link_libraries(CppSandbox PRIVATE stdc++fs)
-    target_link_libraries(CppSandboxTests PRIVATE stdc++fs)
+    target_link_libraries(GearLib PRIVATE stdc++fs)
+    if (TARGET GearTests)
+        target_link_libraries(GearTests PRIVATE stdc++fs)
+    endif()
 endif()
 
 # -------------------------------

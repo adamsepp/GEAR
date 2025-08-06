@@ -9,7 +9,7 @@
 #include "GUI/GuiLayer.h"
 #include "Logger/Logger.h"
 
-namespace cppsandbox
+namespace gear
 {
 	Application::Application()
 	{
@@ -40,7 +40,7 @@ namespace cppsandbox
 		// Make the framebuffer transparent, since we will draw our own edge-rounded background
 		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
-		window = glfwCreateWindow(1280, 720, "CppSandbox", nullptr, nullptr);
+		window = glfwCreateWindow(1280, 720, "GEAR", nullptr, nullptr);
 		if (!window)
 			throw std::runtime_error("Failed to create GLFW window");
 

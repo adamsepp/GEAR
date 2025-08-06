@@ -2,7 +2,7 @@
 
 #include "GUI/GuiLayer.h"
 
-namespace cppsandbox
+namespace gear
 {
 	class Application
 	{
@@ -20,5 +20,4 @@ namespace cppsandbox
 		GLFWwindow* window = nullptr;
 		GuiLayer guiLayer;
 	};
-
-} // namespace cppsandbox
+}

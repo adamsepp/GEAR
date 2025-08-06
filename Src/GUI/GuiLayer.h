@@ -4,7 +4,7 @@
 
 struct GLFWwindow;
 
-namespace cppsandbox
+namespace gear
 {
 	constexpr float titleBarHeight = 32.0f; // Windows Standard
 
@@ -23,7 +23,7 @@ namespace cppsandbox
 		void DrawTopMenuItem(const char* label, const std::function<void()>& contentFn);
 		void RenderCustomTitleBar(GLFWwindow* window);
 
-		void ShowSandboxWindow();
+		void ShowMainWindow();
 		void ShowLoggerWindow();
 
 		bool showImGuiDemoWindow = false;

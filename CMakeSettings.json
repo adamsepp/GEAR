@@ -11,7 +11,7 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "variables": [],
-      "startupProject": "CppSandbox"
+      "startupProject": "Gear"
     },
     {
       "name": "x64-Release",
@@ -24,7 +24,7 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "variables": [],
-      "startupProject": "CppSandbox"
+      "startupProject": "Gear"
     }
   ]
 }

@@ -59,7 +59,9 @@ target_link_libraries(GearLib PRIVATE
 
 add_dependencies(GearLib generate_icons)
 
-enable_language(RC)
+if (MSVC)
+    enable_language(RC)
+endif()
 
 # Main application executable
 set(APP_ICON_RESOURCE "")

@@ -38,6 +38,13 @@ FetchContent_Declare(
     GIT_TAG 10.2.1
 )
 
+# stb_image (header-only)
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG master
+)
+
 # Google Test
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -50,7 +57,7 @@ FetchContent_Declare(
 )
 
 # Fetch all declared content
-FetchContent_MakeAvailable(glfw imgui fmt googletest)
+FetchContent_MakeAvailable(glfw imgui fmt stb googletest)
 
 # -------------------------------
 # Platform-specific OpenGL linking
@@ -64,6 +71,51 @@ else()
     find_package(OpenGL REQUIRED)
     set(OPENGL_LIBS OpenGL::GL)
 endif()
+
+# -------------------------------
+# Icon Embedding (pure CMake, no external tools)
+# -------------------------------
+
+# Source PNGs
+set(APP_ICON_PNGS
+    ${CMAKE_SOURCE_DIR}/Assets/Icon16x16.png
+    ${CMAKE_SOURCE_DIR}/Assets/Icon32x32.png
+    ${CMAKE_SOURCE_DIR}/Assets/Icon48x48.png
+)
+
+# Where to put the generated headers (inside the build tree)
+set(GENERATED_ICON_DIR ${CMAKE_BINARY_DIR}/Assets/IconsGenerated)
+file(MAKE_DIRECTORY ${GENERATED_ICON_DIR})
+
+# Helper script that converts any file into a C/C++ header
+set(EMBED_SCRIPT ${CMAKE_SOURCE_DIR}/Assets/EmbedFileAsHeader.cmake)
+
+set(GENERATED_ICON_HEADERS "")
+foreach(png_file ${APP_ICON_PNGS})
+    get_filename_component(fname_noext ${png_file} NAME_WE) # e.g., Icon16x16
+    set(header_path ${GENERATED_ICON_DIR}/${fname_noext}.h)
+
+    add_custom_command(
+        OUTPUT ${header_path}
+        COMMAND ${CMAKE_COMMAND}
+            -DINPUT=${png_file}
+            -DOUTPUT=${header_path}
+            -DSYMBOL=${fname_noext}
+            -P ${EMBED_SCRIPT}
+        DEPENDS ${png_file} ${EMBED_SCRIPT}
+        COMMENT "Embedding ${fname_noext}.png -> ${fname_noext}.h"
+        VERBATIM
+    )
+    list(APPEND GENERATED_ICON_HEADERS ${header_path})
+endforeach()
+
+# Build step to generate all headers
+add_custom_target(generate_icons ALL DEPENDS ${GENERATED_ICON_HEADERS})
+
+# Interface lib: exports the include path and triggers generation
+add_library(IconsEmbedded INTERFACE)
+target_include_directories(IconsEmbedded INTERFACE ${GENERATED_ICON_DIR})
+add_dependencies(IconsEmbedded generate_icons)
 
 # -------------------------------
 # Project subdirectories

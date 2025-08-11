@@ -47,19 +47,32 @@ target_include_directories(GearLib PUBLIC
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${glfw_SOURCE_DIR}/include
+    ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(GearLib PRIVATE
     glfw
     ${OPENGL_LIBS}
     fmt::fmt
+    IconsEmbedded
 )
+
+add_dependencies(GearLib generate_icons)
+
+enable_language(RC)
 
 # Main application executable
+set(APP_ICON_RESOURCE "")
+if (MSVC)
+    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/Assets/Gear.rc")
+endif()
+
 add_executable(Gear
     ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+    ${APP_ICON_RESOURCE}
 )
 
+# Link against GearLib and IconsEmbedded to get generated headers
 target_link_libraries(Gear PRIVATE GearLib)
 
 # Compile options

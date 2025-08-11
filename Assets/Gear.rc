@@ -1,0 +1,2 @@
+#define GLFW_ICON 101
+GLFW_ICON ICON "Gear.ico"

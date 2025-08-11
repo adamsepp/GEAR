@@ -1,4 +1,5 @@
 ﻿#include <GLFW/glfw3.h>
+#include <stb_image.h>
 #include <functional>
 #include <chrono>
 
@@ -9,6 +10,28 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+
+// Generated headers from ${build}/Assets/IconsGenerated
+#include "Icon32x32.h"
+
+static ImTextureID logTextureID = (ImTextureID)nullptr;
+static ImTextureID LoadLogoTextureFromMemory(const unsigned char* data, int len)
+{
+	int w, h, comp;
+	unsigned char* rgba = stbi_load_from_memory(data, len, &w, &h, &comp, 4);
+	if (!rgba)
+		return (ImTextureID)nullptr;
+
+	GLuint texId;
+	glGenTextures(1, &texId);
+	glBindTexture(GL_TEXTURE_2D, texId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+	stbi_image_free(rgba);
+
+	return (ImTextureID)(intptr_t)texId;
+}
 
 namespace gear
 {
@@ -314,7 +337,7 @@ namespace gear
 		// DPI-aware values
 		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
 		float padding = 8.0f * dpiScale;
-		float logoSize = (titleBarHeight - 10.0f) * dpiScale; // Dynamically scale logo with title bar height
+		float logoSize = (titleBarHeight - padding / 2) * dpiScale; // Dynamically scale logo with title bar height
 		static bool isResizing = false;
 		const float resizeBorder = 5.0f; // Distance from window edge within which resizing is triggered
 
@@ -342,33 +365,17 @@ namespace gear
 
 		ImGui::Begin("CustomTitleBar", nullptr, flags);
 
-		// Logo placeholder
-		ImGui::SetCursorPos(ImVec2(padding, (titleBarHeight * dpiScale - logoSize) * 0.5f));
-		{
-			ImVec2 logoPos = ImGui::GetCursorScreenPos();
-			ImVec2 logoSizeVec = ImVec2(logoSize, logoSize);
-			ImGui::Dummy(logoSizeVec);
-			ImGui::GetWindowDrawList()->AddRectFilled(
-				logoPos,
-				logoPos + logoSizeVec,
-				IM_COL32(100, 100, 100, 255),
-				4.0f);
-			ImGui::GetWindowDrawList()->AddRect(
-				logoPos,
-				logoPos + logoSizeVec,
-				IM_COL32(50, 50, 50, 255),
-				4.0f);
-			ImVec2 textSize = ImGui::CalcTextSize("T");
-			ImVec2 textPos = ImVec2(
-				logoPos.x + (logoSize - textSize.x) * 0.5f,
-				logoPos.y + (logoSize - textSize.y) * 0.5f);
-			ImGui::GetWindowDrawList()->AddText(textPos, IM_COL32(255, 255, 255, 255), "T");
-		}
+		// Draw Logo / Icon
+		if (!logTextureID)
+			logTextureID = LoadLogoTextureFromMemory(Icon32x32, Icon32x32_len);
+
+		ImGui::SetCursorPos(ImVec2(padding / 2, (titleBarHeight * dpiScale - logoSize) * 0.5f + 2.0f));
+		ImGui::Image(logTextureID, ImVec2(logoSize, logoSize));
 
 		// Draw menu items
-		float buttonY = (titleBarHeight * dpiScale - (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f)) * 0.5f;
+		float buttonY = (titleBarHeight * dpiScale - (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y)) * 0.5f;
 		ImGui::SetCursorPosY(buttonY);
-		ImGui::SetCursorPosX(logoSize + 2 * padding);
+		ImGui::SetCursorPosX(logoSize + padding);
 
 		// Draw Menues
 		DrawTopMenuItem("File", [&]()

@@ -1,7 +1,4 @@
-<h1>
-  <img src="./Assets/Icon48x48.png" alt="GEAR Icon" style="vertical-align: middle; width: 48px; height: 48px;">
-  GEAR – General Execution & Application Runtime
-</h1>
+# GEAR – General Execution & Application Runtime
 
 **GEAR** is a modular C\+\+20 application framework that uses [Dear ImGui](https://github.com/ocornut/imgui) and [GLFW](https://github.com/glfw/glfw) to provide a minimal, UI-driven interface without relying on the console.  
 It’s designed as a sandbox and runtime core for experimenting with modern C++ features, GUI rendering, real-time dashboards, and logging.
@@ -10,7 +7,6 @@ It’s designed as a sandbox and runtime core for experimenting with modern C++ 
 
 * Modular structure: `Application/`, `Logger/`, `GUI/`, `Tests/`
 * GUI-only interface using Dear ImGui, GLFW, and OpenGL
-* Custom application icons for executable, GLFW window, and custom title bar
 * All dependencies managed via CMake `FetchContent` (no manual downloads)
 * Cross-platform build support via CMake (Windows, Linux, macOS)
 * Basic GoogleTest setup included
@@ -80,7 +76,6 @@ This project uses the following main dependencies, all automatically managed via
 * [GLFW](https://github.com/glfw/glfw) — window and input management  
 * [Dear ImGui](https://github.com/ocornut/imgui) — immediate mode GUI  
 * [fmt](https://github.com/fmtlib/fmt) — modern formatting library  
-* [stb_image](https://github.com/nothings/stb) — image loading for window and title bar icons  
 * [GoogleTest](https://github.com/google/googletest) — testing framework  
 
 Additionally, a modern C++ compiler (supporting C++20) and CMake (>= 3.20) are required to build the project.

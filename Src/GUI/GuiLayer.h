@@ -18,13 +18,21 @@ namespace gear
 		void Render(GLFWwindow* window);
 		void EndFrame(GLFWwindow* window);
 
+		float GetDpiScale() { return dpiScale; }
+		bool GetIsMaximized() { return isMaximized; }
+		bool GetTitleBarAllowDrag() { return titleBarAllowDrag; }
+
 	private:
 		void ApplyCustomDarkTheme();
-		void DrawTopMenuItem(const char* label, const std::function<void()>& contentFn);
+		void DrawTopMenuItem(const char* label, const std::function<void()>& contentFn, bool& isOverSysButton);
 		void RenderCustomTitleBar(GLFWwindow* window);
 
 		void ShowMainWindow();
 		void ShowLoggerWindow();
+
+		float dpiScale = 1.0f;
+		bool isMaximized = false;
+		bool titleBarAllowDrag = false;
 
 		bool showImGuiDemoWindow = false;
 

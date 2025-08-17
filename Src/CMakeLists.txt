@@ -25,6 +25,26 @@ set(CPP_GEAR_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/CircularLogBuffer.h
 )
 
+# ---- Platform-specific sources (added) ----
+set(PLATFORM_SRC "")
+set(PLATFORM_HEADERS "")
+
+if (WIN32)
+    list(APPEND PLATFORM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Windows/WinBorderless.cpp
+    )
+    list(APPEND PLATFORM_HEADERS
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Windows/WinBorderless.h
+    )
+elseif(APPLE)
+    # We need Objective-C++ for .mm files
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_STANDARD 17)
+    list(APPEND PLATFORM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/mac/MacTitlebar.mm
+    )
+endif()
+
 # Select platform-specific OpenGL library
 if(APPLE)
     find_library(OPENGL_LIBRARY OpenGL)
@@ -40,6 +60,8 @@ endif()
 add_library(GearLib STATIC
     ${CPP_GEAR_SRC}
     ${CPP_GEAR_HEADERS}
+    ${PLATFORM_SRC}
+    ${PLATFORM_HEADERS}
 )
 
 target_include_directories(GearLib PUBLIC
@@ -56,6 +78,16 @@ target_link_libraries(GearLib PRIVATE
     fmt::fmt
     IconsEmbedded
 )
+
+# Platform-specific linking/defs for GearLib
+if (WIN32)
+    # Needed for DwmSetWindowAttribute and GLFW native access
+    target_link_libraries(GearLib PRIVATE dwmapi)
+    target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_WIN32)
+elseif(APPLE)
+    # GLFW usually links Cocoa/AppKit; expose native cocoa handle
+    target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_COCOA)
+endif()
 
 add_dependencies(GearLib generate_icons)
 

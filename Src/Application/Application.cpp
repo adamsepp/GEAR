@@ -1,4 +1,4 @@
-#include <GLFW/glfw3.h>
+﻿#include <GLFW/glfw3.h>
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -16,6 +16,10 @@
 #include "Application.h"
 #include "GUI/GuiLayer.h"
 #include "Logger/Logger.h"
+
+#ifdef _WIN32
+#include "Platform/Windows/WinBorderless.h"
+#endif
 
 namespace // internal linkage
 {
@@ -90,26 +94,59 @@ namespace gear
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-		// Hide GLFW title bar, since we draw our own with RenderCustomTitleBar()
-		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-
-		// Make the framebuffer transparent, since we will draw our own edge-rounded background
-		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+#ifdef _WIN32
+		// --- Windows-specific: draw our own custom title bar ---
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // disable default OS frame
+		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // background transparency for rounded edges
+#else
+		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // keep default decoration on other platforms
+#endif
 
 		window = glfwCreateWindow(1280, 720, "GEAR", nullptr, nullptr);
 		if (!window)
 			throw std::runtime_error("Failed to create GLFW window");
 
+#ifdef _WIN32
+		// Hook custom WndProc: lets Windows handle dragging (for FancyZones, Snap, etc.)
+		HookBorderlessForGLFW(window,
+			[](float x, float y, void* user) -> bool
+			{
+				auto* gui = static_cast<gear::GuiLayer*>(user);
+				// query flag from custom titlebar (set in RenderCustomTitleBar)
+				return gui->GetTitleBarAllowDrag() && (y >= 0.0f) && (y <= titleBarHeight * gui->GetDpiScale());
+			},
+			&guiLayer);
+
+		// Store 'this' for callbacks that need Application instance
+		glfwSetWindowUserPointer(window, this);
+
+		// Handle WM_PAINT/refresh: force one redraw if maximized+restored via OS drag (to show it always correct when dragging starts)
+		glfwSetWindowRefreshCallback(window, [](GLFWwindow* w)
+			{
+				auto* app = static_cast<gear::Application*>(glfwGetWindowUserPointer(w));
+				if (!app)
+					return;
+
+				if (app->guiLayer.GetIsMaximized())
+				{
+					// Render one frame so content size matches new restored window size
+					glfwMakeContextCurrent(w);
+					app->guiLayer.BeginFrame(w);
+					app->guiLayer.Render(w);
+					app->guiLayer.EndFrame(w);
+					glfwSwapBuffers(w);
+				}
+			});
+#endif
+
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(1); // Enable VSync
 
-		// Set Window Icon - (needed, since we do glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);)
-		// Works on Windows & many Linux WMs.
-		// TODO(Linux): For full desktop integration, also install a .desktop file and PNGs to /usr/share/icons.
-		// TODO(macOS): glfwSetWindowIcon is ignored, use .icns in app bundle instead.
-		SetWindowIcons(window);
+#ifndef __APPLE__
+		SetWindowIcons(window); // only works on Win/Linux, ignored by macOS
+#endif
 
-		// GUI layer setup
+		// Initialize ImGui layer
 		guiLayer.Init(window);
 	}
 

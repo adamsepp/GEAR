@@ -108,7 +108,7 @@ namespace gear
 		ImVec2 pos = viewport->Pos;
 		ImVec2 size = viewport->Size;
 
-		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+		isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
 
 		// ---------------- Platform-dependent Rounding ----------------
 #if defined(__linux__)
@@ -259,7 +259,7 @@ namespace gear
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 	}
 
-	void GuiLayer::DrawTopMenuItem(const char* label, const std::function<void()>& contentFn)
+	void GuiLayer::DrawTopMenuItem(const char* label, const std::function<void()>& contentFn, bool& isOverSysButton)
 	{
 		static const char* activeTopMenuName = nullptr;
 
@@ -282,6 +282,7 @@ namespace gear
 				pos + size,
 				IM_COL32(60, 60, 60, 255)
 			);
+			isOverSysButton = true;
 		}
 
 		// Create an invisible button that responds to input
@@ -304,6 +305,7 @@ namespace gear
 				activeTopMenuName = label;
 				ImGui::OpenPopup(label);
 			}
+			isOverSysButton = true;
 		}
 
 		// Hover behavior: switch active menu if another is already open
@@ -311,6 +313,7 @@ namespace gear
 		{
 			activeTopMenuName = label;
 			ImGui::OpenPopup(label);
+			isOverSysButton = true;
 		}
 
 		// Position the popup directly below the menu item
@@ -321,6 +324,7 @@ namespace gear
 		{
 			contentFn();
 			ImGui::EndPopup();
+			isOverSysButton = true;
 		}
 		else if (isActive)
 		{
@@ -339,16 +343,24 @@ namespace gear
 		float padding = 8.0f * dpiScale;
 		float logoSize = (titleBarHeight - padding / 2) * dpiScale; // Dynamically scale logo with title bar height
 		static bool isResizing = false;
-		const float resizeBorder = 5.0f; // Distance from window edge within which resizing is triggered
+		const float resizeBorder = 5.0f * dpiScale; // Distance from window edge within which resizing is triggered
 
-		int winX, winY;
-		glfwGetWindowPos(window, &winX, &winY);
-		int w, h;
-		glfwGetWindowSize(window, &w, &h);
+		int winPosX, winPosY;
+		glfwGetWindowPos(window, &winPosX, &winPosY);
+		int winSizeX, winSizeY;
+		glfwGetWindowSize(window, &winSizeX, &winSizeY);
+		ImVec2 windowPos((float)winPosX, (float)winPosY);
+		ImVec2 windowSize((float)winSizeX, (float)winSizeY);
+		// Set Mouse Position directly again from GLFW to ensure a valid mouse position, even, when the window is not active
+		double mx, my;
+		glfwGetCursorPos(window, &mx, &my);
+		int wx, wy;
+		glfwGetWindowPos(window, &wx, &wy);
+		ImVec2 mouse = ImGui::GetIO().MousePos = ImVec2((float)mx + wx, (float)my + wy);
 
 		// Set up title bar window
-		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(winX), static_cast<float>(winY)));
-		ImGui::SetNextWindowSize(ImVec2(static_cast<float>(w), titleBarHeight * dpiScale));
+		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(winPosX), static_cast<float>(winPosY)));
+		ImGui::SetNextWindowSize(ImVec2(static_cast<float>(winSizeX), titleBarHeight * dpiScale));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background, since we use a global rounded background
 
@@ -372,6 +384,9 @@ namespace gear
 		ImGui::SetCursorPos(ImVec2(padding / 2, (titleBarHeight * dpiScale - logoSize) * 0.5f + 2.0f));
 		ImGui::Image(logTextureID, ImVec2(logoSize, logoSize));
 
+		// Track if mouse is over any system button incl. menue buttons
+		bool isOverSysButton = false;
+
 		// Draw menu items
 		float buttonY = (titleBarHeight * dpiScale - (ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y)) * 0.5f;
 		ImGui::SetCursorPosY(buttonY);
@@ -382,27 +397,20 @@ namespace gear
 			{
 				if (ImGui::MenuItem("Exit"))
 					glfwSetWindowShouldClose(window, GLFW_TRUE);
-			});
+			}, isOverSysButton);
 
 		// Reset Y for next item — important due to SameLine()
 		ImGui::SetCursorPosY(buttonY);
 		DrawTopMenuItem("View", [&]()
 			{
 				ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
-			});
+			}, isOverSysButton);
 
 		// ==== Title bar buttons ====
 		float buttonWidth = 45.0f * dpiScale; // DPI-aware sizes
 		float buttonHeight = titleBarHeight * dpiScale;
-		ImVec2 windowPos = ImGui::GetWindowPos();
-		ImVec2 windowSize = ImGui::GetWindowSize();
-		ImVec2 mouse = ImGui::GetMousePos();
 
-		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
 		ImDrawList* draw = ImGui::GetWindowDrawList();
-
-		// Track if mouse is over any system button
-		bool isOverSysButton = false;
 
 		// Loop over the 3 system buttons: [Minimize, Maximize/Restore, Close]
 		for (int i = 0; i < 3; ++i)
@@ -522,29 +530,29 @@ namespace gear
 		ResizeEdge hoveredEdge = ResizeEdge::None;
 
 		// Detect edge or corner
-		if (mouse.x >= winX && mouse.x <= winX + resizeBorder)
+		if (mouse.x >= winPosX && mouse.x <= winPosX + resizeBorder)
 		{
-			if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+			if (mouse.y >= winPosY && mouse.y <= winPosY + resizeBorder)
 				hoveredEdge = TopLeft;
-			else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+			else if (mouse.y >= winPosY + winSizeY - resizeBorder && mouse.y <= winPosY + winSizeY)
 				hoveredEdge = BottomLeft;
 			else
 				hoveredEdge = Left;
 		}
-		else if (mouse.x >= winX + w - resizeBorder && mouse.x <= winX + w)
+		else if (mouse.x >= winPosX + winSizeX - resizeBorder && mouse.x <= winPosX + winSizeX)
 		{
-			if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+			if (mouse.y >= winPosY && mouse.y <= winPosY + resizeBorder)
 				hoveredEdge = TopRight;
-			else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+			else if (mouse.y >= winPosY + winSizeY - resizeBorder && mouse.y <= winPosY + winSizeY)
 				hoveredEdge = BottomRight;
 			else
 				hoveredEdge = Right;
 		}
-		else if (mouse.y >= winY && mouse.y <= winY + resizeBorder)
+		else if (mouse.y >= winPosY && mouse.y <= winPosY + resizeBorder)
 		{
 			hoveredEdge = Top;
 		}
-		else if (mouse.y >= winY + h - resizeBorder && mouse.y <= winY + h)
+		else if (mouse.y >= winPosY + winSizeY - resizeBorder && mouse.y <= winPosY + winSizeY)
 		{
 			hoveredEdge = Bottom;
 		}
@@ -577,10 +585,10 @@ namespace gear
 			isResizing = true;
 			activeEdge = hoveredEdge;
 			resizeStartMouse = mouse;
-			resizeStartX = winX;
-			resizeStartY = winY;
-			resizeStartW = w;
-			resizeStartH = h;
+			resizeStartX = winPosX;
+			resizeStartY = winPosY;
+			resizeStartW = winSizeX;
+			resizeStartH = winSizeY;
 
 			if (isMaximized)
 			{
@@ -588,12 +596,12 @@ namespace gear
 				shouldRestoreWindow = true;
 
 				shouldMoveWindow = true;
-				pendingMoveX = winX;
-				pendingMoveY = winY;
+				pendingMoveX = winPosX;
+				pendingMoveY = winPosY;
 
 				shouldResizeWindow = true;
-				pendingResizeW = w;
-				pendingResizeH = h;
+				pendingResizeW = winSizeX;
+				pendingResizeH = winSizeY;
 			}
 		}
 
@@ -640,82 +648,8 @@ namespace gear
 			activeEdge = None;
 		}
 
-		// ==== Dragging (only when not resizing) ====
-
-		static bool dragging = false;
-		static ImVec2 dragStartMousePos;
-		static int dragStartWinX, dragStartWinY;
-		static float dragStartMouseRatioX = 0.0f; // Mouse position relative to window width at drag start
-		static float dragStartMouseRatioY = 0.0f; // Mouse position relative to window height at drag start (optional)
-
-		bool hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
-		bool overItem = ImGui::IsAnyItemHovered();
-		bool inResizeZone = hoveredEdge != None;
-
-		if (!isResizing && !inResizeZone && hovered && !isOverSysButton && !overItem &&
-			ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-		{
-			dragging = true;
-			dragStartMousePos = ImGui::GetMousePos();
-			dragStartWinX = winX;
-			dragStartWinY = winY;
-
-			if (isMaximized)
-			{
-				// Store the relative mouse position inside the maximized window
-				dragStartMouseRatioX = (mouse.x - winX) / (float)w;
-				dragStartMouseRatioY = (mouse.y - winY) / (float)h;
-			}
-		}
-
-		if (dragging && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
-			dragging = false;
-
-		if (dragging)
-		{
-			float dx = mouse.x - dragStartMousePos.x;
-			float dy = mouse.y - dragStartMousePos.y;
-
-			if (isMaximized && (fabsf(dx) > 0 || fabsf(dy) > 0))
-			{
-				// Leaving maximized state due to dragging
-				shouldRestoreWindow = true;
-
-				// Define custom restore size (similar to Windows behavior)
-				int restoredWidth = std::max(w / 2, 800);   // Minimum width
-				int restoredHeight = std::max(h / 2, 600);  // Minimum height
-
-				// Position so that the mouse stays at the same relative point
-				pendingMoveX = mouse.x - (restoredWidth * dragStartMouseRatioX);
-				pendingMoveY = mouse.y - (restoredHeight * dragStartMouseRatioY);
-				shouldMoveWindow = true;
-
-				// Set the restored size immediately
-				pendingResizeW = restoredWidth;
-				pendingResizeH = restoredHeight;
-				shouldResizeWindow = true;
-
-				// Update drag start reference to restored position
-				dragStartWinX = pendingMoveX;
-				dragStartWinY = pendingMoveY;
-			}
-			else
-			{
-				// Normal dragging (non-maximized window)
-				shouldMoveWindow = true;
-				pendingMoveX = dragStartWinX + dx;
-				pendingMoveY = dragStartWinY + dy;
-			}
-		}
-
-		// Optional: maximize/restore on double-click
-		if (!isResizing && !inResizeZone && hovered && !overItem && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-		{
-			if (isMaximized)
-				shouldRestoreWindow = true; // this should trigger restore to custom size
-			else
-				glfwMaximizeWindow(window);
-		}
+		// Update flag for Resizing from Windows
+		titleBarAllowDrag = (hoveredEdge == None) && !isOverSysButton;
 
 		ImGui::End();
 	}

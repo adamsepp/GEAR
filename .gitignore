@@ -1,3 +1,11 @@
+# OS-specific
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
 # Visual Studio
 .vs/
 *.suo

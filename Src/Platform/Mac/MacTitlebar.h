@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-void MacSetupMenuAndTitlebar(GLFWwindow* win);
+	void MacSetupMenuAndTitlebar(GLFWwindow* win);
 
 #ifdef __cplusplus
 }

@@ -119,7 +119,7 @@ namespace gear
 			{
 				auto* gui = static_cast<gear::GuiLayer*>(user);
 				// query flag from custom titlebar (set in RenderCustomTitleBar)
-				return gui->GetTitleBarAllowDrag() && (y >= 0.0f) && (y <= titleBarHeight * gui->GetDpiScale());
+				return gui->GetTitleBarAllowDrag() && (y >= 0.0f) && (y <= gui->GetTitleBarHeight() * gui->GetDpiScale());
 			},
 			&guiLayer);
 

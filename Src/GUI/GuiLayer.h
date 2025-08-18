@@ -16,6 +16,7 @@ namespace gear
 		void Render(GLFWwindow* window);
 		void EndFrame(GLFWwindow* window);
 
+		float GetTitleBarHeight() { return titleBarHeight; }
 		float GetDpiScale() { return dpiScale; }
 		bool GetIsMaximized() { return isMaximized; }
 		bool GetTitleBarAllowDrag() { return titleBarAllowDrag; }

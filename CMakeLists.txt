@@ -3,9 +3,13 @@
 cmake_minimum_required(VERSION 3.20)
 
 # -------------------------------------------------
-# Project declaration (OBJCXX included for .mm files)
+# Project declaration (OBJCXX only on macOS)
 # -------------------------------------------------
-project(GEAR VERSION 0.1 LANGUAGES C CXX OBJC OBJCXX)
+if(APPLE)
+    project(GEAR VERSION 0.1 LANGUAGES C CXX OBJC OBJCXX)
+else()
+    project(GEAR VERSION 0.1 LANGUAGES C CXX)
+endif()
 
 # Enable modern C++ standard
 set(CMAKE_CXX_STANDARD 20)

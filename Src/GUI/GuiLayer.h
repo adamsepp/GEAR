@@ -6,8 +6,6 @@ struct GLFWwindow;
 
 namespace gear
 {
-	constexpr float titleBarHeight = 32.0f; // Windows Standard
-
 	class GuiLayer
 	{
 	public:
@@ -30,6 +28,7 @@ namespace gear
 		void ShowMainWindow();
 		void ShowLoggerWindow();
 
+		float titleBarHeight = 32.0f; // Windows Standard
 		float dpiScale = 1.0f;
 		bool isMaximized = false;
 		bool titleBarAllowDrag = false;

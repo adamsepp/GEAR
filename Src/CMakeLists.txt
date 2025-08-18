@@ -37,12 +37,13 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Windows/WinBorderless.h
     )
 elseif(APPLE)
-    enable_language(OBJCXX)
-    set(CMAKE_OBJCXX_STANDARD 17)
     list(APPEND PLATFORM_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Mac/MacTitlebar.mm
     )
-    # ARC for .mm-Datei
+    list(APPEND PLATFORM_HEADERS
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Mac/MacTitlebar.h
+    )
+    # Objective-C ARC for our .mm file
     set_source_files_properties(
         ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Mac/MacTitlebar.mm
         PROPERTIES COMPILE_FLAGS "-fobjc-arc"
@@ -58,11 +59,6 @@ elseif(WIN32)
 else()
     find_package(OpenGL REQUIRED)
     set(OPENGL_LIBS OpenGL::GL)
-endif()
-
-# Optional: macOS OpenGL-Deprecation-Warnungen ausblenden (JETZT ist das Target da)
-if(APPLE)
-    target_compile_definitions(GearLib PRIVATE GL_SILENCE_DEPRECATION)
 endif()
 
 # Core library target
@@ -93,12 +89,14 @@ if (WIN32)
     target_link_libraries(GearLib PRIVATE dwmapi)
     target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_WIN32)
 elseif(APPLE)
-    target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_COCOA)
+    # For Cocoa-Handle (glfwGetCocoaWindow) and macOS UI
+    target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_COCOA GL_SILENCE_DEPRECATION)
     target_link_libraries(GearLib PRIVATE "-framework Cocoa")
 endif()
 
 add_dependencies(GearLib generate_icons)
 
+# MSVC: activate Resource-Compiler, if needed
 if (MSVC)
     enable_language(RC)
 endif()

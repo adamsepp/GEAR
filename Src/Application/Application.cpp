@@ -20,6 +20,9 @@
 #ifdef _WIN32
 #include "Platform/Windows/WinBorderless.h"
 #endif
+#ifdef __APPLE__
+#include "Platform/Mac/MacTitlebar.h"
+#endif
 
 namespace // internal linkage
 {
@@ -142,7 +145,6 @@ namespace gear
 			});
 #endif
 #ifdef __APPLE__
-		extern "C" void MacSetupMenuAndTitlebar(GLFWwindow * win);
 		MacSetupMenuAndTitlebar(window);
 #endif
 

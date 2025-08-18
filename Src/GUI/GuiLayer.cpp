@@ -48,15 +48,8 @@ namespace gear
 #ifdef __APPLE__
 		// macOS-native text navigation and ⌘ shortcuts
 		io.ConfigMacOSXBehaviors = true;
+		titleBarHeight = 0;
 #endif
-
-		// --- DPI / Retina handling ---
-		// Prefer loading fonts scaled for the current content scale rather than using FontGlobalScale.
-		// As a simple starting point, apply global scaling to keep text crisp on HiDPI.
-		float xscale = 1.0f, yscale = 1.0f;
-		glfwGetWindowContentScale(window, &xscale, &yscale);
-		io.FontGlobalScale = xscale; // quick-and-dirty; replace with scaled font sizes for best quality
-
 		// --- Style ---
 		ApplyCustomDarkTheme();
 

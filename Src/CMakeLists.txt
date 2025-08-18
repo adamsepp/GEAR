@@ -37,11 +37,15 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Windows/WinBorderless.h
     )
 elseif(APPLE)
-    # We need Objective-C++ for .mm files
     enable_language(OBJCXX)
     set(CMAKE_OBJCXX_STANDARD 17)
     list(APPEND PLATFORM_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/mac/MacTitlebar.mm
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Mac/MacTitlebar.mm
+    )
+    # ARC for .mm-Datei
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/Platform/Mac/MacTitlebar.mm
+        PROPERTIES COMPILE_FLAGS "-fobjc-arc"
     )
 endif()
 
@@ -54,6 +58,11 @@ elseif(WIN32)
 else()
     find_package(OpenGL REQUIRED)
     set(OPENGL_LIBS OpenGL::GL)
+endif()
+
+# Optional: macOS OpenGL-Deprecation-Warnungen ausblenden (JETZT ist das Target da)
+if(APPLE)
+    target_compile_definitions(GearLib PRIVATE GL_SILENCE_DEPRECATION)
 endif()
 
 # Core library target
@@ -81,12 +90,11 @@ target_link_libraries(GearLib PRIVATE
 
 # Platform-specific linking/defs for GearLib
 if (WIN32)
-    # Needed for DwmSetWindowAttribute and GLFW native access
     target_link_libraries(GearLib PRIVATE dwmapi)
     target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_WIN32)
 elseif(APPLE)
-    # GLFW usually links Cocoa/AppKit; expose native cocoa handle
     target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_COCOA)
+    target_link_libraries(GearLib PRIVATE "-framework Cocoa")
 endif()
 
 add_dependencies(GearLib generate_icons)

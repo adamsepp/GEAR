@@ -41,17 +41,55 @@ namespace gear
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		// --- Core ImGui config flags ---
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // enable docking
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // multi-viewport / OS windows
 
+#ifdef __APPLE__
+		// macOS-native text navigation and ⌘ shortcuts
+		io.ConfigMacOSXBehaviors = true;
+#endif
+
+		// --- DPI / Retina handling ---
+		// Prefer loading fonts scaled for the current content scale rather than using FontGlobalScale.
+		// As a simple starting point, apply global scaling to keep text crisp on HiDPI.
+		float xscale = 1.0f, yscale = 1.0f;
+		glfwGetWindowContentScale(window, &xscale, &yscale);
+		io.FontGlobalScale = xscale; // quick-and-dirty; replace with scaled font sizes for best quality
+
+		// --- Style ---
 		ApplyCustomDarkTheme();
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			// Viewport windows are real OS windows; rounding must be 0 for seamless look
+			style.WindowRounding = 0.0f;
+			// Ensure alpha=1 for viewport windows, or they may appear translucent
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
+		// --- Backend init (GLFW + OpenGL3) ---
+		// Install callbacks = true is fine unless you manage GLFW callbacks yourself.
+		ImGui_ImplGlfw_InitForOpenGL(window, /*install_callbacks=*/true);
+
+#ifdef __APPLE__
+		// You created an OpenGL 3.2 Core context on macOS -> GLSL 150 is correct.
+		ImGui_ImplOpenGL3_Init("#version 150");
+#else
+		// Most other platforms here use GL 3.3 Core -> GLSL 330
 		ImGui_ImplOpenGL3_Init("#version 330");
+#endif
 	}
 
 	void GuiLayer::Shutdown()
 	{
+		if (logTextureID)
+		{
+			GLuint tex = (GLuint)(intptr_t)logTextureID;
+			glDeleteTextures(1, &tex);
+			logTextureID = (ImTextureID)nullptr;
+		}
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
@@ -98,6 +136,7 @@ namespace gear
 		ImGui_ImplGlfw_NewFrame();      // Prepare GLFW input bindings
 		ImGui::NewFrame();              // Begin ImGui frame logic
 
+#ifndef __APPLE__
 		// ------------------------------------------------------------
 		// Draw a rounded window background behind all ImGui windows,
 		// unless the GLFW window is maximized, or the platform doesn't support it (e.g. Linux without compositor).
@@ -123,32 +162,20 @@ namespace gear
 		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
 
 		// Draw filled background
-		drawList->AddRectFilled(
-			pos,
-			pos + size,
-			bgColor,
-			rounding,
-			drawFlags
-		);
+		drawList->AddRectFilled(pos, pos + size, bgColor, rounding, drawFlags);
 
 		// Optional border for non-maximized windows
 		if (!isMaximized && drawFlags != ImDrawFlags_None)
-		{
-			drawList->AddRect(
-				pos,
-				pos + size,
-				ImGui::GetColorU32(ImGuiCol_Border),
-				rounding,
-				drawFlags,
-				1.0f // border thickness
-			);
-		}
+			drawList->AddRect(pos, pos + size, ImGui::GetColorU32(ImGuiCol_Border), rounding, drawFlags, 1.0f);
+#endif
 	}
 
 	void GuiLayer::Render(GLFWwindow* window)
 	{
-		// Draw cutom title bar
+#ifndef __APPLE__
+		// Only render custom title bar on Win/Linux
 		RenderCustomTitleBar(window);
+#endif
 
 		// Setup main docking window (below custom title bar)
 		constexpr ImGuiWindowFlags windowFlags =
@@ -223,6 +250,7 @@ namespace gear
 	void GuiLayer::EndFrame(GLFWwindow* window)
 	{
 		ImGuiIO& io = ImGui::GetIO();
+		// Render main ImGui draw data to current framebuffer
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

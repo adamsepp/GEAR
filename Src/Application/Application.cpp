@@ -86,13 +86,16 @@ namespace gear
 		if (!glfwInit())
 			throw std::runtime_error("Failed to initialize GLFW");
 
+#ifdef __APPLE__
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+		glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
+#else
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef _WIN32
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef _WIN32
 		// --- Windows-specific: draw our own custom title bar ---
@@ -137,6 +140,10 @@ namespace gear
 					glfwSwapBuffers(w);
 				}
 			});
+#endif
+#ifdef __APPLE__
+		extern "C" void MacSetupMenuAndTitlebar(GLFWwindow * win);
+		MacSetupMenuAndTitlebar(window);
 #endif
 
 		glfwMakeContextCurrent(window);

@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 	void MacSetupMenuAndTitlebar(GLFWwindow* win);
+	void MacSyncMenusFromGuiLayer(gear::GuiLayer* layer);
 
 #ifdef __cplusplus
 }

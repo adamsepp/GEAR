@@ -73,6 +73,9 @@ namespace gear
 		// Most other platforms here use GL 3.3 Core -> GLSL 330
 		ImGui_ImplOpenGL3_Init("#version 330");
 #endif
+
+		// Register all default menues
+		RegisterDefaultMenus(window);
 	}
 
 	void GuiLayer::Shutdown()
@@ -256,6 +259,32 @@ namespace gear
 		}
 	}
 
+	void GuiLayer::AddMenu(MenuDef menu)
+	{
+		menus.push_back(std::move(menu));
+	}
+
+	void GuiLayer::RegisterDefaultMenus(GLFWwindow* window)
+	{
+		if (!menus.empty())
+			return; // idempotent
+
+		MenuDef fileMenu{ "File", {
+			MenuItem{ "Exit", std::nullopt /*std::string("Alt+F4")*/, [=]() {
+				if (window) glfwSetWindowShouldClose(window, GLFW_TRUE);
+			}, false }
+		} };
+
+		MenuDef viewMenu{ "View", {
+			MenuItem{ "Show ImGui Demo", std::nullopt, [this]() {
+				showImGuiDemoWindow = true;
+			}, false }
+		} };
+
+		menus.push_back(std::move(fileMenu));
+		menus.push_back(std::move(viewMenu));
+	}
+
 	void GuiLayer::ApplyCustomDarkTheme()
 	{
 		auto& colors = ImGui::GetStyle().Colors;
@@ -413,19 +442,29 @@ namespace gear
 		ImGui::SetCursorPosY(buttonY);
 		ImGui::SetCursorPosX(logoSize + padding);
 
-		// Draw Menues
-		DrawTopMenuItem("File", [&]()
-			{
-				if (ImGui::MenuItem("Exit"))
-					glfwSetWindowShouldClose(window, GLFW_TRUE);
-			}, isOverSysButton);
-
-		// Reset Y for next item — important due to SameLine()
-		ImGui::SetCursorPosY(buttonY);
-		DrawTopMenuItem("View", [&]()
-			{
-				ImGui::MenuItem("Show ImGui Demo", nullptr, &showImGuiDemoWindow);
-			}, isOverSysButton);
+		for (const auto& menu : menus)
+		{
+			DrawTopMenuItem(menu.name.c_str(), [&]()
+				{
+					for (const auto& item : menu.items)
+					{
+						if (item.isSeparator)
+						{
+							ImGui::Separator();
+							continue;
+						}
+						const char* sc = item.shortcut ? item.shortcut->c_str() : nullptr;
+						if (item.togglePtr)
+							ImGui::MenuItem(item.label.c_str(), sc, item.togglePtr);
+						else if (ImGui::MenuItem(item.label.c_str(), sc))
+						{
+							if (item.action != nullptr)
+								item.action();
+						}
+					}
+				}, isOverSysButton);
+			ImGui::SetCursorPosY(buttonY); // Reset Y for next item — important due to SameLine()
+		}
 
 		// ==== Title bar buttons ====
 		float buttonWidth = 45.0f * dpiScale; // DPI-aware sizes

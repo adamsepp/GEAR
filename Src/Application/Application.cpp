@@ -144,9 +144,6 @@ namespace gear
 				}
 			});
 #endif
-#ifdef __APPLE__
-		MacSetupMenuAndTitlebar(window);
-#endif
 
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(1); // Enable VSync
@@ -157,6 +154,11 @@ namespace gear
 
 		// Initialize ImGui layer
 		guiLayer.Init(window);
+
+#ifdef __APPLE__
+		MacSetupMenuAndTitlebar(window);
+		MacSyncMenusFromGuiLayer(&guiLayer);
+#endif
 	}
 
 	void Application::Shutdown()

@@ -14,6 +14,10 @@
 // Generated headers from ${build}/Assets/IconsGenerated
 #include "Icon32x32.h"
 
+#ifdef __APPLE__
+#include "Platform/Mac/MacTitlebar.h"
+#endif
+
 static ImTextureID logTextureID = (ImTextureID)nullptr;
 static ImTextureID LoadLogoTextureFromMemory(const unsigned char* data, int len)
 {
@@ -48,7 +52,7 @@ namespace gear
 #ifdef __APPLE__
 		// macOS-native text navigation and ⌘ shortcuts
 		io.ConfigMacOSXBehaviors = true;
-		titleBarHeight = 0;
+		titleBarHeight = 28.0f; // Mac standard
 #endif
 		// --- Style ---
 		ApplyCustomDarkTheme();
@@ -168,10 +172,7 @@ namespace gear
 
 	void GuiLayer::Render(GLFWwindow* window)
 	{
-#ifndef __APPLE__
-		// Only render custom title bar on Win/Linux
 		RenderCustomTitleBar(window);
-#endif
 
 		// Setup main docking window (below custom title bar)
 		constexpr ImGuiWindowFlags windowFlags =
@@ -388,6 +389,7 @@ namespace gear
 
 	void GuiLayer::RenderCustomTitleBar(GLFWwindow* window)
 	{
+#ifdef _WIN32
 		// DPI-aware values
 		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
 		float padding = 8.0f * dpiScale;
@@ -712,6 +714,59 @@ namespace gear
 		titleBarAllowDrag = (hoveredEdge == None) && !isOverSysButton;
 
 		ImGui::End();
+
+#elif defined(__APPLE__)
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		float titleBarHeight = 28.0f * dpiScale;
+		float trafficLightsWidth = 80.0f * dpiScale; // reserve space for the mac traffic lights
+
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, titleBarHeight));
+		ImGui::SetNextWindowViewport(viewport->ID);
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+		ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoDocking;
+
+		ImGui::Begin("MacTitlebar", nullptr, flags);
+
+		// --- DRAG ZONE (left-to-center), leaves space for traffic lights ---
+		ImGui::SetCursorPos(ImVec2(trafficLightsWidth, 0.0f));
+		ImGui::InvisibleButton("##MacDragZone", ImVec2(ImGui::GetContentRegionAvail().x - 200.0f * dpiScale, titleBarHeight));
+		bool inDragZone = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+
+		// Double-click: maximize/zoom (or minimize if user pref says so)
+		if (inDragZone && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+		{
+			MacHandleTitlebarDoubleClick(window);
+		}
+		// Start drag on click (call once at press)
+		else if (inDragZone && ImGui::IsItemActivated() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			MacBeginWindowDrag(window);
+		}
+
+		// --- Title centered-ish ---
+		ImGui::SameLine();
+		ImGui::SetCursorPos(ImVec2(trafficLightsWidth + 8.0f * dpiScale,
+			(titleBarHeight - ImGui::GetTextLineHeight()) * 0.5f));
+		ImGui::TextUnformatted("GEAR");
+
+		ImGui::End();
+		ImGui::PopStyleVar(2);
+#else
+		// maybe Linux / stub
+#endif
 	}
 
 	void GuiLayer::ShowMainWindow()

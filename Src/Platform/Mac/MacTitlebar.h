@@ -7,6 +7,8 @@ extern "C" {
 
 	void MacSetupMenuAndTitlebar(GLFWwindow* win);
 	void MacSyncMenusFromGuiLayer(gear::GuiLayer* layer);
+	void MacBeginWindowDrag(GLFWwindow* win);
+	void MacHandleTitlebarDoubleClick(GLFWwindow* win);
 
 #ifdef __cplusplus
 }

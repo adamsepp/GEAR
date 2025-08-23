@@ -2,7 +2,7 @@
   "version": "0.2.1",
   "configurations": [
     {
-      "name": "Gear (MacOS-LLDB-Debug)",
+      "name": "Gear (MacOS)",
       "type": "cppdbg",
       "debuggerFlavor": "lldb",
       "MIMode": "lldb",
@@ -24,7 +24,7 @@
       "env": {}
     },
     {
-      "name": "Gear (Raspi-GDB-Debug)",
+      "name": "Gear (RasperryPi)",
       "type": "cppdbg",
       "MIMode": "gdb",
 

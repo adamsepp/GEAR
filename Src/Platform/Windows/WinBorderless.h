@@ -7,4 +7,13 @@ using TitleHitTestFn = bool(*)(float x, float y, void* user);
 
 // Install borderless style + custom WndProc so only titlebar drags are handled natively.
 void HookBorderlessForGLFW(GLFWwindow* window, TitleHitTestFn hitTest, void* user);
+
+// Load data from resources
+struct ResourceData
+{
+	const void* data;
+	size_t      size;
+};
+ResourceData LoadResourceData(int resId);
+
 #endif

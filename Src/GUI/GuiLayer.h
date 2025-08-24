@@ -61,6 +61,7 @@ namespace gear
 		bool titleBarAllowDrag = false;
 
 		bool showImGuiDemoWindow = false;
+		bool showIconListViewerWindow = false;
 
 		// Menu-Registry
 		std::vector<MenuDef> menus;

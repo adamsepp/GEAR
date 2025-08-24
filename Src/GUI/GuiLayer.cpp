@@ -5,18 +5,42 @@
 
 #include "GuiLayer.h"
 #include "GuiMath.h"
+#include "GuiIconListViewer.h"
 #include "Logger/Logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-// Generated headers from ${build}/Assets/IconsGenerated
-#include "Icon32x32.h"
+#ifdef _WIN32
+#include "Platform/Windows/WinBorderless.h"
+#endif
 
 #ifdef __APPLE__
 #include "Platform/Mac/MacTitlebar.h"
 #endif
+
+// Generated headers from ${build}/Assets/IconsGenerated
+#include "Icon32x32.h"
+
+// Fonts
+#ifdef _WIN32
+#define FONT_INTER_REGULAR   201
+#define FONT_INTER_BOLD      202
+#define FONT_FA_SOLID        203
+#define FONT_FA_REGULAR      204
+#define FONT_FA_BRANDS       205
+#else
+// Generated headers from ${build}/EmbeddedFonts
+#include "Inter_Regular.h"
+#include "Inter_Bold.h"
+#include "Font_Awesome_7_Free_Solid_900.h"
+#include "Font_Awesome_7_Free_Regular_400.h"
+#include "Font_Awesome_7_Brands_Regular_400.h"
+#endif
+
+#include "../Assets/Fonts/IconsFontAwesome7.h"
+#include "../Assets/Fonts/IconsFontAwesome7Brands.h"
 
 static ImTextureID logTextureID = (ImTextureID)nullptr;
 static ImTextureID LoadLogoTextureFromMemory(const unsigned char* data, int len)
@@ -37,6 +61,10 @@ static ImTextureID LoadLogoTextureFromMemory(const unsigned char* data, int len)
 	return (ImTextureID)(intptr_t)texId;
 }
 
+// Fonts
+static ImFont* fontRegular = nullptr;
+static ImFont* fontBold = nullptr;
+
 namespace gear
 {
 	void GuiLayer::Init(GLFWwindow* window)
@@ -44,6 +72,86 @@ namespace gear
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		// --- Fonts ---
+		io.Fonts->Clear();
+
+		// Ranges für Font Awesome
+		static const ImWchar fontRegularRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+		static const ImWchar fontBrandRanges[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
+
+#ifdef _WIN32
+		// Inter Regular (Basis-Font mit Merge für Icons)
+		ImFontConfig baseConfig;
+		baseConfig.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
+		{
+			ResourceData regData = LoadResourceData(FONT_INTER_REGULAR);
+			if (regData.data)
+				fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)regData.data, (int)regData.size, 16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+
+			if (fontRegular)
+			{
+				ImFontConfig cfg;
+				cfg.MergeMode = true;
+				cfg.PixelSnapH = true;
+				cfg.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
+
+				// Font Awesome Solid
+				ResourceData faSolid = LoadResourceData(FONT_FA_SOLID);
+				if (faSolid.data)
+					io.Fonts->AddFontFromMemoryTTF((void*)faSolid.data, (int)faSolid.size, 16.0f, &cfg, fontRegularRanges);
+
+				// Font Awesome Regular
+				ResourceData faRegular = LoadResourceData(FONT_FA_REGULAR);
+				if (faRegular.data)
+					io.Fonts->AddFontFromMemoryTTF((void*)faRegular.data, (int)faRegular.size, 16.0f, &cfg, fontRegularRanges);
+
+				// Font Awesome Brands
+				ResourceData faBrands = LoadResourceData(FONT_FA_BRANDS);
+				if (faBrands.data)
+					io.Fonts->AddFontFromMemoryTTF((void*)faBrands.data, (int)faBrands.size, 16.0f, &cfg, fontBrandRanges);
+			}
+		}
+
+		// Inter Bold (separat, ohne Merge)
+		{
+			ResourceData boldData = LoadResourceData(FONT_INTER_BOLD);
+			if (boldData.data)
+				fontBold = io.Fonts->AddFontFromMemoryTTF((void*)boldData.data, (int)boldData.size, 16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+		}
+
+#else // Linux / macOS via generated headers
+		ImFontConfig baseConfig;
+		baseConfig.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
+
+		// Inter Regular (base font with merge for icons)
+		fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)inter_regular_ttf, (int)inter_regular_ttf_len,
+			16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+
+		if (fontRegular)
+		{
+			ImFontConfig cfg;
+			cfg.MergeMode = true;
+			cfg.PixelSnapH = true;
+			cfg.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
+
+			// Font Awesome Solid
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_solid_900_otf, (int)font_awesome_7_free_solid_900_otf_len,
+				16.0f, &cfg, fontRegularRanges);
+
+			// Font Awesome Regular
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_regular_400_otf, (int)font_awesome_7_free_regular_400_otf_len,
+				16.0f, &cfg, fontRegularRanges);
+
+			// Font Awesome Brands
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_brands_regular_400_otf, (int)font_awesome_7_brands_regular_400_otf_len,
+				16.0f, &cfg, fontBrandRanges);
+		}
+
+		// Inter Bold (separately, without merge)
+		fontBold = io.Fonts->AddFontFromMemoryTTF((void*)inter_bold_ttf, (int)inter_bold_ttf_len,
+			16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+#endif
 
 		// --- Core ImGui config flags ---
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // enable docking
@@ -242,6 +350,9 @@ namespace gear
 
 		if (showImGuiDemoWindow)
 			ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+
+		if (showIconListViewerWindow)
+			ShowIconListView(&showIconListViewerWindow);
 	}
 
 	void GuiLayer::EndFrame(GLFWwindow* window)
@@ -271,15 +382,12 @@ namespace gear
 			return; // idempotent
 
 		MenuDef fileMenu{ "File", {
-			MenuItem{ "Exit", std::nullopt /*std::string("Alt+F4")*/, [=]() {
-				if (window) glfwSetWindowShouldClose(window, GLFW_TRUE);
-			}, false }
+			MenuItem{ "Exit", std::nullopt /*std::string("Alt+F4")*/, [=]() { if (window) glfwSetWindowShouldClose(window, GLFW_TRUE); }, false }
 		} };
 
 		MenuDef viewMenu{ "View", {
-			MenuItem{ "Show ImGui Demo", std::nullopt, [this]() {
-				showImGuiDemoWindow = true;
-			}, false }
+			MenuItem{ "Show ImGui Demo", std::nullopt,       [this]() { showImGuiDemoWindow = true; }, false },
+			MenuItem{ "Show Icon List Viewer", std::nullopt, [this]() { showIconListViewerWindow = true; }, false }
 		} };
 
 		menus.push_back(std::move(fileMenu));
@@ -760,7 +868,7 @@ namespace gear
 		ImGui::SameLine();
 		ImGui::SetCursorPos(ImVec2(trafficLightsWidth + 8.0f * dpiScale,
 			(titleBarHeight - ImGui::GetTextLineHeight()) * 0.5f));
-		ImGui::TextUnformatted("GEAR");
+		ImGui::TextUnformatted("Gear");
 
 		ImGui::End();
 		ImGui::PopStyleVar(2);
@@ -772,6 +880,16 @@ namespace gear
 	void GuiLayer::ShowMainWindow()
 	{
 		ImGui::Begin("Main");
+
+		ImGui::SeparatorText("Font Tests");
+
+		ImGui::PushFont(fontBold);
+		ImGui::Text("Font bold example");
+		ImGui::PopFont();
+
+		ImGui::Text("%s Regular + Icon", ICON_FA_LIST_UL);
+
+		ImGui::SeparatorText("Logging Tests");
 
 		static const std::vector<std::function<void()>> logActions = {
 			[] { LOG_INFO("Demo: User '{}' logged in.", "Alice"); },

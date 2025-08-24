@@ -1,2 +1,15 @@
 #define GLFW_ICON 101
 GLFW_ICON ICON "Gear.ico"
+
+// Fonts as RCDATA
+#define FONT_INTER_REGULAR   201
+#define FONT_INTER_BOLD      202
+#define FONT_FA_SOLID        203
+#define FONT_FA_REGULAR      204
+#define FONT_FA_BRANDS       205
+
+FONT_INTER_REGULAR RCDATA "../Assets/Fonts/Inter-Regular.ttf"
+FONT_INTER_BOLD    RCDATA "../Assets/Fonts/Inter-Bold.ttf"
+FONT_FA_SOLID      RCDATA "../Assets/Fonts/Font Awesome 7 Free-Solid-900.otf"
+FONT_FA_REGULAR    RCDATA "../Assets/Fonts/Font Awesome 7 Free-Regular-400.otf"
+FONT_FA_BRANDS     RCDATA "../Assets/Fonts/Font Awesome 7 Brands-Regular-400.otf"

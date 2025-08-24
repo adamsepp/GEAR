@@ -143,6 +143,45 @@ add_library(IconsEmbedded INTERFACE)
 target_include_directories(IconsEmbedded INTERFACE ${GENERATED_ICON_DIR})
 add_dependencies(IconsEmbedded generate_icons)
 
+# -----------------------------------------------------------------------------
+# Fonts
+# -----------------------------------------------------------------------------
+
+if(WIN32)
+    # On Windows, fonts are embedded via .rc file (no generated headers)
+    add_library(EmbeddedFonts INTERFACE) # dummy target for consistency
+    set(EMBEDDED_FONT_HEADERS "")
+
+elseif(UNIX)
+    # On Linux/macOS we embed fonts as C headers generated via ImGuiFontEmbedding.cmake
+    include(${CMAKE_SOURCE_DIR}/Assets/Fonts/ImGuiFontEmbedding.cmake)
+
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/EmbeddedFonts)
+
+    embed_font("${CMAKE_SOURCE_DIR}/Assets/Fonts/Inter-Regular.ttf"        INTER_REGULAR)
+    embed_font("${CMAKE_SOURCE_DIR}/Assets/Fonts/Inter-Bold.ttf"           INTER_BOLD)
+    embed_font("${CMAKE_SOURCE_DIR}/Assets/Fonts/Font Awesome 7 Free-Solid-900.otf"   FA_SOLID)
+    embed_font("${CMAKE_SOURCE_DIR}/Assets/Fonts/Font Awesome 7 Free-Regular-400.otf" FA_REGULAR)
+    embed_font("${CMAKE_SOURCE_DIR}/Assets/Fonts/Font Awesome 7 Brands-Regular-400.otf" FA_BRANDS)
+
+    set(EMBEDDED_FONT_HEADERS
+        ${INTER_REGULAR_HDR}
+        ${INTER_BOLD_HDR}
+        ${FA_SOLID_HDR}
+        ${FA_REGULAR_HDR}
+        ${FA_BRANDS_HDR}
+    )
+
+    # Interface library that makes generated headers available to all targets
+    add_library(EmbeddedFonts INTERFACE)
+    target_include_directories(EmbeddedFonts INTERFACE ${CMAKE_BINARY_DIR}/EmbeddedFonts)
+
+    # Ensure the headers are generated before build
+    add_custom_target(generate_fonts ALL DEPENDS ${EMBEDDED_FONT_HEADERS})
+    add_dependencies(EmbeddedFonts generate_fonts)
+endif()
+
+
 # -------------------------------
 # Project subdirectories
 # -------------------------------

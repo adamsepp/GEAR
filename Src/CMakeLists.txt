@@ -11,6 +11,7 @@ file(GLOB IMGUI_SOURCES
 set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
     ${IMGUI_SOURCES}
 )
@@ -18,6 +19,7 @@ set(CPP_GEAR_SRC
 set(CPP_GEAR_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiMath.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
@@ -82,7 +84,19 @@ target_link_libraries(GearLib PRIVATE
     ${OPENGL_LIBS}
     fmt::fmt
     IconsEmbedded
+    EmbeddedFonts
 )
+
+# Ensure that icone are generated before compiling GearLib
+add_dependencies(GearLib generate_icons)
+
+# Add generated headers to GearLib (so IDEs like VS/CLion can see them)
+target_sources(GearLib PRIVATE ${EMBEDDED_FONT_HEADERS})
+
+# Ensure that fonts are generated before compiling GearLib (only on Linux/macOS)
+if(UNIX)
+    add_dependencies(GearLib generate_fonts)
+endif()
 
 # Platform-specific linking/defs for GearLib
 if (WIN32)
@@ -93,8 +107,6 @@ elseif(APPLE)
     target_compile_definitions(GearLib PRIVATE GLFW_EXPOSE_NATIVE_COCOA GL_SILENCE_DEPRECATION)
     target_link_libraries(GearLib PRIVATE "-framework Cocoa")
 endif()
-
-add_dependencies(GearLib generate_icons)
 
 # MSVC: activate Resource-Compiler, if needed
 if (MSVC)
@@ -112,7 +124,7 @@ add_executable(Gear
     ${APP_ICON_RESOURCE}
 )
 
-# Link against GearLib and IconsEmbedded to get generated headers
+# Link against GearLib to get generated headers
 target_link_libraries(Gear PRIVATE GearLib)
 
 # Compile options

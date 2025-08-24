@@ -58,4 +58,21 @@ void HookBorderlessForGLFW(GLFWwindow* win, TitleHitTestFn cb, void* user)
 	BOOL enable = TRUE;
 	DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &enable, sizeof(enable));
 }
+
+ResourceData LoadResourceData(int resId)
+{
+	ResourceData result{ nullptr, 0 };
+
+	HMODULE mod = GetModuleHandle(nullptr);
+	HRSRC   res = FindResource(mod, MAKEINTRESOURCE(resId), RT_RCDATA);
+	if (!res) return result;
+
+	HGLOBAL mem = LoadResource(mod, res);
+	if (!mem) return result;
+
+	result.data = LockResource(mem);
+	result.size = SizeofResource(mod, res);
+
+	return result;
+}
 #endif

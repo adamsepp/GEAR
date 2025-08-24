@@ -80,6 +80,8 @@ namespace gear
 		static const ImWchar fontRegularRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 		static const ImWchar fontBrandRanges[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
 
+		float fontSize = 16.0f;
+
 #ifdef _WIN32
 		// Inter Regular (Basis-Font mit Merge für Icons)
 		ImFontConfig baseConfig;
@@ -87,7 +89,7 @@ namespace gear
 		{
 			ResourceData regData = LoadResourceData(FONT_INTER_REGULAR);
 			if (regData.data)
-				fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)regData.data, (int)regData.size, 16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+				fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)regData.data, (int)regData.size, fontSize, &baseConfig, io.Fonts->GetGlyphRangesDefault());
 
 			if (fontRegular)
 			{
@@ -99,17 +101,17 @@ namespace gear
 				// Font Awesome Solid
 				ResourceData faSolid = LoadResourceData(FONT_FA_SOLID);
 				if (faSolid.data)
-					io.Fonts->AddFontFromMemoryTTF((void*)faSolid.data, (int)faSolid.size, 16.0f, &cfg, fontRegularRanges);
+					io.Fonts->AddFontFromMemoryTTF((void*)faSolid.data, (int)faSolid.size, fontSize, &cfg, fontRegularRanges);
 
 				// Font Awesome Regular
 				ResourceData faRegular = LoadResourceData(FONT_FA_REGULAR);
 				if (faRegular.data)
-					io.Fonts->AddFontFromMemoryTTF((void*)faRegular.data, (int)faRegular.size, 16.0f, &cfg, fontRegularRanges);
+					io.Fonts->AddFontFromMemoryTTF((void*)faRegular.data, (int)faRegular.size, fontSize, &cfg, fontRegularRanges);
 
 				// Font Awesome Brands
 				ResourceData faBrands = LoadResourceData(FONT_FA_BRANDS);
 				if (faBrands.data)
-					io.Fonts->AddFontFromMemoryTTF((void*)faBrands.data, (int)faBrands.size, 16.0f, &cfg, fontBrandRanges);
+					io.Fonts->AddFontFromMemoryTTF((void*)faBrands.data, (int)faBrands.size, fontSize, &cfg, fontBrandRanges);
 			}
 		}
 
@@ -117,7 +119,7 @@ namespace gear
 		{
 			ResourceData boldData = LoadResourceData(FONT_INTER_BOLD);
 			if (boldData.data)
-				fontBold = io.Fonts->AddFontFromMemoryTTF((void*)boldData.data, (int)boldData.size, 16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+				fontBold = io.Fonts->AddFontFromMemoryTTF((void*)boldData.data, (int)boldData.size, fontSize, &baseConfig, io.Fonts->GetGlyphRangesDefault());
 		}
 
 #else // Linux / macOS via generated headers
@@ -125,8 +127,7 @@ namespace gear
 		baseConfig.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
 
 		// Inter Regular (base font with merge for icons)
-		fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)inter_regular_ttf, (int)inter_regular_ttf_len,
-			16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+		fontRegular = io.Fonts->AddFontFromMemoryTTF((void*)inter_regular_ttf, (int)inter_regular_ttf_len, fontSize, &baseConfig, io.Fonts->GetGlyphRangesDefault());
 
 		if (fontRegular)
 		{
@@ -136,21 +137,17 @@ namespace gear
 			cfg.FontDataOwnedByAtlas = false; // resource memory must NOT be freed by ImGui
 
 			// Font Awesome Solid
-			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_solid_900_otf, (int)font_awesome_7_free_solid_900_otf_len,
-				16.0f, &cfg, fontRegularRanges);
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_solid_900_otf, (int)font_awesome_7_free_solid_900_otf_len, fontSize, &cfg, fontRegularRanges);
 
 			// Font Awesome Regular
-			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_regular_400_otf, (int)font_awesome_7_free_regular_400_otf_len,
-				16.0f, &cfg, fontRegularRanges);
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_free_regular_400_otf, (int)font_awesome_7_free_regular_400_otf_len, fontSize, &cfg, fontRegularRanges);
 
 			// Font Awesome Brands
-			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_brands_regular_400_otf, (int)font_awesome_7_brands_regular_400_otf_len,
-				16.0f, &cfg, fontBrandRanges);
+			io.Fonts->AddFontFromMemoryTTF((void*)font_awesome_7_brands_regular_400_otf, (int)font_awesome_7_brands_regular_400_otf_len, fontSize, &cfg, fontBrandRanges);
 		}
 
 		// Inter Bold (separately, without merge)
-		fontBold = io.Fonts->AddFontFromMemoryTTF((void*)inter_bold_ttf, (int)inter_bold_ttf_len,
-			16.0f, &baseConfig, io.Fonts->GetGlyphRangesDefault());
+		fontBold = io.Fonts->AddFontFromMemoryTTF((void*)inter_bold_ttf, (int)inter_bold_ttf_len, fontSize, &baseConfig, io.Fonts->GetGlyphRangesDefault());
 #endif
 
 		// --- Core ImGui config flags ---

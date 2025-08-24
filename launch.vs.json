@@ -1,44 +1,46 @@
 {
+  // Launch configuration for Visual Studio remote debugging.
+  // Each remoteMachineName tries to read from an environment variable,
+  // but falls back to a sensible default if not set.
+  // Example:
+  //   Windows: setx GEAR_REMOTE_MAC "user@MacBook.local"
+  //   Linux/macOS: export GEAR_REMOTE_MAC=user@MacBook.local
+  //
+  // For more info, see Docs/DEVELOPMENT.md
+
   "version": "0.2.1",
   "configurations": [
     {
-      "name": "Gear (MacOS)",
+      "name": "Gear (macOS)",
       "type": "cppdbg",
       "debuggerFlavor": "lldb",
       "MIMode": "lldb",
 
-      // macOS requirements:
-      // - Install Homebrew: brew install llvm cmake ninja
-      // - Build lldb-mi from https://github.com/lldb-tools/lldb-mi and install to /usr/local/bin/lldb-mi
-      // - Add /usr/local/bin/lldb-mi and /usr/bin/lldb to System Settings → Privacy & Security → Developer Tools
-      // - In Visual Studio: add "MacBook.local" as a Cross Platform Connection (Tools → Options → Cross Platform → Connection Manager)
-
       "miDebuggerPath": "/usr/local/bin/lldb-mi",
       "project": "CMakeLists.txt",
       "projectTarget": "Gear",
-      "remoteMachineName": "adamsepp@MacBook.local",
+
+      "remoteMachineName": "${env:GEAR_REMOTE_MAC:adamsepp@MacBook.local}",
       "program": "${remoteBuildRoot}/bin/Gear",
       "currentDir": "${remoteBuildRoot}/bin",
+
       "stopAtEntry": false,
       "args": [],
       "env": {}
     },
     {
-      "name": "Gear (RasperryPi)",
+      "name": "Gear (Raspberry Pi)",
       "type": "cppdbg",
       "MIMode": "gdb",
-
-      // Raspberry Pi requirements:
-      // - On the Pi: sudo apt install build-essential gdb cmake ninja-build rsync
-      // - Make sure SSH is enabled (raspi-config)
-      // - In Visual Studio: add "raspberrypi" (or IP) as a Cross Platform Connection with user "pi"
 
       "miDebuggerPath": "/usr/bin/gdb",
       "project": "CMakeLists.txt",
       "projectTarget": "Gear",
-      "remoteMachineName": "adamsepp@raspberrypi",
+
+      "remoteMachineName": "${env:GEAR_REMOTE_RPI:adamsepp@raspberrypi}",
       "program": "${remoteBuildRoot}/bin/Gear",
       "currentDir": "${remoteBuildRoot}/bin",
+
       "stopAtEntry": false,
       "args": [],
       "env": {}

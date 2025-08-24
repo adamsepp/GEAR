@@ -104,9 +104,9 @@ endif()
 
 # Source PNGs
 set(APP_ICON_PNGS
-    ${CMAKE_SOURCE_DIR}/Assets/Icon16x16.png
-    ${CMAKE_SOURCE_DIR}/Assets/Icon32x32.png
-    ${CMAKE_SOURCE_DIR}/Assets/Icon48x48.png
+    ${CMAKE_SOURCE_DIR}/Assets/Icons/Icon16x16.png
+    ${CMAKE_SOURCE_DIR}/Assets/Icons/Icon32x32.png
+    ${CMAKE_SOURCE_DIR}/Assets/Icons/Icon48x48.png
 )
 
 # Where to put the generated headers (inside the build tree)
@@ -114,7 +114,7 @@ set(GENERATED_ICON_DIR ${CMAKE_BINARY_DIR}/Assets/IconsGenerated)
 file(MAKE_DIRECTORY ${GENERATED_ICON_DIR})
 
 # Helper script that converts any file into a C/C++ header
-set(EMBED_SCRIPT ${CMAKE_SOURCE_DIR}/Assets/EmbedFileAsHeader.cmake)
+set(EMBED_SCRIPT ${CMAKE_SOURCE_DIR}/Assets/Icons/EmbedFileAsHeader.cmake)
 
 set(GENERATED_ICON_HEADERS "")
 foreach(png_file ${APP_ICON_PNGS})

@@ -116,7 +116,7 @@ endif()
 # Main application executable
 set(APP_ICON_RESOURCE "")
 if (MSVC)
-    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/Assets/Gear.rc")
+    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/Assets/Icons/Gear.rc")
 endif()
 
 add_executable(Gear

@@ -1,5 +1,5 @@
 <h1 style="display: flex; align-items: center; gap: 10px; margin: 0;">
-  <img src="./Assets/Icon48x48.png" alt="GEAR Icon" style="width: 48px; height: 48px;">
+  <img src="./Assets/Icons/Icon48x48.png" alt="GEAR Icon" style="width: 48px; height: 48px;">
   GEAR – General Execution & Application Runtime
 </h1>
 

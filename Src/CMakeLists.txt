@@ -115,14 +115,36 @@ endif()
 
 # Main application executable
 set(APP_ICON_RESOURCE "")
-if (MSVC)
-    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/Assets/Icons/Gear.rc")
-endif()
 
-add_executable(Gear
-    ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
-    ${APP_ICON_RESOURCE}
-)
+# Main application executable
+set(APP_ICON_RESOURCE "")
+
+if (MSVC)
+    # On Windows, embed the .ico file via resource script (.rc)
+    set(APP_ICON_RESOURCE "${CMAKE_SOURCE_DIR}/Assets/Icons/Gear.rc")
+
+    add_executable(Gear WIN32
+        ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+        ${APP_ICON_RESOURCE}
+    )
+elseif(APPLE)
+    # On macOS, embed the .icns file into the .app bundle
+    set(MACOSX_BUNDLE_ICON_FILE Gear.icns)
+
+    # Tell CMake to put the .icns file into the Resources folder of the .app bundle
+    set_source_files_properties(${CMAKE_SOURCE_DIR}/Assets/Icons/Gear.icns
+        PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
+    add_executable(Gear MACOSX_BUNDLE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+        ${CMAKE_SOURCE_DIR}/Assets/Icons/Gear.icns
+    )
+else()
+    # On Linux and others, normal executable
+    add_executable(Gear
+        ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp
+    )
+endif()
 
 # Link against GearLib to get generated headers
 target_link_libraries(Gear PRIVATE GearLib)

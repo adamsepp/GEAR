@@ -244,38 +244,44 @@ namespace gear
 		ImGui_ImplGlfw_NewFrame();      // Prepare GLFW input bindings
 		ImGui::NewFrame();              // Begin ImGui frame logic
 
-#ifndef __APPLE__
 		// ------------------------------------------------------------
-		// Draw a rounded window background behind all ImGui windows,
-		// unless the GLFW window is maximized, or the platform doesn't support it (e.g. Linux without compositor).
+		// Draw a rounded window background behind all ImGui windows.
+		// Platform-specific tweaks:
+		//   - Linux: no rounding (compositor/transparency uncertain)
+		//   - Windows/others: rounded unless maximized
+		//   - macOS: always rounded
 		// ------------------------------------------------------------
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImDrawList* drawList = ImGui::GetBackgroundDrawList(const_cast<ImGuiViewport*>(viewport));
 
 		ImVec2 pos = viewport->Pos;
 		ImVec2 size = viewport->Size;
-
-		isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
-
-		// ---------------- Platform-dependent Rounding ----------------
-#if defined(__linux__)
-		// Rounded corners are disabled on Linux for now, because transparency support
-		// (e.g. via compositing or 32-bit visual) is not guaranteed and often fails
-		// TODO: Detect compositor or enable rounding if supported (e.g. with Wayland or picom) - currently disabled in CMakeLists
-		float rounding = 0.0f;
-#else
-		float rounding = isMaximized ? 0.0f : 8.0f;
-#endif
-		ImDrawFlags drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 		ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg);
+
+		float rounding = 0.0f;
+		ImDrawFlags drawFlags = ImDrawFlags_None;
+
+#if defined(__linux__)
+		// Linux: disable rounding (compositor support uncertain)
+		rounding = 0.0f;
+		drawFlags = ImDrawFlags_None;
+#elif defined(__APPLE__)
+		// macOS: always rounded
+		rounding = 8.0f;
+		drawFlags = ImDrawFlags_RoundCornersAll;
+#else
+		// Windows / others: rounded unless maximized
+		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+		rounding = isMaximized ? 0.0f : 8.0f;
+		drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
+#endif
 
 		// Draw filled background
 		drawList->AddRectFilled(pos, pos + size, bgColor, rounding, drawFlags);
 
-		// Optional border for non-maximized windows
-		if (!isMaximized && drawFlags != ImDrawFlags_None)
+		// Optional border if rounded
+		if (rounding > 0.0f && drawFlags != ImDrawFlags_None)
 			drawList->AddRect(pos, pos + size, ImGui::GetColorU32(ImGuiCol_Border), rounding, drawFlags, 1.0f);
-#endif
 	}
 
 	void GuiLayer::Render(GLFWwindow* window)
@@ -864,11 +870,19 @@ namespace gear
 			MacBeginWindowDrag(window);
 		}
 
-		// --- Title centered-ish ---
-		ImGui::SameLine();
-		ImGui::SetCursorPos(ImVec2(trafficLightsWidth + 8.0f * dpiScale,
-			(titleBarHeight - ImGui::GetTextLineHeight()) * 0.5f));
-		ImGui::TextUnformatted("Gear");
+		// --- Title centered ---
+		const char* title = "Gear";
+		ImVec2 textSize = ImGui::CalcTextSize(title);
+
+		// center of whole window
+		float centerX = (viewport->WorkSize.x - textSize.x) * 0.5f;
+
+		// keep vertical centering
+		float centerY = (titleBarHeight - textSize.y) * 0.5f;
+
+		// apply position
+		ImGui::SetCursorPos(ImVec2(centerX, centerY));
+		ImGui::TextUnformatted(title);
 
 		ImGui::End();
 		ImGui::PopStyleVar(2);

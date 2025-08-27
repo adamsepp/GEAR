@@ -24,6 +24,11 @@
 #include "Platform/Mac/MacTitlebar.h"
 #endif
 
+static void glfwErrorCallback(int error, const char* description)
+{
+	LOG_ERROR("Main", "GLFW ERROR CODE: " + std::to_string(error) + " DESCRIPTION: " + std::string(description));
+}
+
 namespace // internal linkage
 {
 	GLFWimage MakeImage(const unsigned char* data, int len)
@@ -86,31 +91,67 @@ namespace gear
 
 	void Application::Init()
 	{
+		glfwSetErrorCallback(glfwErrorCallback);
+
 		if (!glfwInit())
 			throw std::runtime_error("Failed to initialize GLFW");
 
+		// ------------------------------------------------------------
+		// GLFW / OpenGL Context Initialization (Cross-Platform)
+		// ------------------------------------------------------------
 #ifdef __APPLE__
+	// --- macOS: Core Profile 3.2 + Forward Compatibility ---
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);   // required on macOS
 		glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
+
+#elif defined(__linux__)
+#if defined(__arm__) || defined(__aarch64__)
+	// --- Linux on ARM/ARM64 (e.g. Raspberry Pi): GLES 3.1 ---
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 #else
+	// --- Linux on Desktop (x86/x64): Desktop GL 3.3 ---
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-#endif
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
 
-#ifdef _WIN32
-		// --- Windows-specific: draw our own custom title bar ---
-		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // disable default OS frame
-		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // background transparency for rounded edges
 #else
-		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // keep default decoration on other platforms
+	// --- Windows or other platforms: Desktop GL 3.3 ---
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
+
+		// ------------------------------------------------------------
+		// Window Decoration / Frame Style
+		// ------------------------------------------------------------
+#ifdef _WIN32
+	// Custom title bar (we draw our own)
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); // may not work on all GPUs
+#else
+	// Use system window frame on other platforms
+		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 #endif
 
 		window = glfwCreateWindow(1280, 720, "GEAR", nullptr, nullptr);
 		if (!window)
 			throw std::runtime_error("Failed to create GLFW window");
+
+		int fb_w, fb_h;
+		glfwGetFramebufferSize(window, &fb_w, &fb_h);
+
+		float xscale, yscale;
+		glfwGetWindowContentScale(window, &xscale, &yscale);
+
+		LOG_INFO("GUI Framebuffer: " + std::to_string(fb_w) + "x" + std::to_string(fb_h));
+		LOG_INFO("GUI Content scale: " + std::to_string(xscale) + ", " + std::to_string(yscale));
 
 #ifdef _WIN32
 		// Hook custom WndProc: lets Windows handle dragging (for FancyZones, Snap, etc.)

@@ -12,7 +12,7 @@ It complements the main project description in [README.md](../README.md).
   - [Raspberry Pi Setup](#raspberry-pi-setup)
 - [Working with Visual Studio Code (planned)](#working-with-visual-studio-code-planned)
 - [Local building & debugging on macOS (planned)](#local-building--debugging-on-macos-planned)
-- [Local building & debugging on Linux (planned)](#local-building--debugging-on-linux-planned)
+- [Local building & debugging on Linux](#local-building--debugging-on-linux)
 - [Tips](#tips)
 
 ---
@@ -74,18 +74,53 @@ If the variables are not set, the fallback values in `launch.vs.json` are used (
 
 ### Raspberry Pi Setup
 
-#### Requirements (on the Pi)
+#### Prerequisites
+
+Raspberry Pi 4 or 5 with Raspberry Pi OS
+
+#### Prepare VNC, SSH and Display
+
+To enable VNC and SSH on the Raspberry Pi:
+
 ```bash
-sudo apt install build-essential gdb cmake ninja-build rsync
+sudo raspi-config
+```
+- Interface Options → SSH → YES  
+- Interface Options → VNC → YES  
+- Advanced Options → Wayland → Labwc (default compositor if Wayland is used)
+
+Afterwards, connect using **Real VNC Viewer** for the desktop, or **PowerShell SSH** from Windows.
+
+#### Prepare the system
+
+```bash
+sudo apt update
+sudo apt upgrade -y   # optional, recommended on fresh installations
+
+# Compiler & Build Tools
+sudo apt install -y build-essential cmake ninja-build git pkg-config
+
+# Debugging Tools
+sudo apt install -y gdb gdbserver rsync
+
+# OpenGL / X11 dependencies (required for GLFW + ImGui)
+sudo apt install -y   libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev   libgl1-mesa-dev libgl1-mesa-dri mesa-utils
+
+# Wayland support (only if you really want to use Wayland)
+sudo apt install -y   wayland-protocols libwayland-dev libxkbcommon-dev
+
+# xxd for converting fonts into C/C++ headers
+sudo apt install -y xxd
 ```
 
-- Make sure **SSH** is enabled (`raspi-config`).  
-- In Visual Studio: add `"raspberrypi"` (or IP) as a Cross Platform Connection, user `"pi"`.  
+#### Remote debugging with Visual Studio
 
-#### Launch configuration
-- Uses `gdb` as debugger.  
-- Path to `gdb`: `/usr/bin/gdb`  
-- Remote Machine: `${env:GEAR_REMOTE_RPI:pi@raspberrypi.local}`
+Once the Raspberry Pi connection has been set up in Visual Studio:
+
+1. Select the configuration **"Raspi-GCC-Debug"**  
+2. Wait until CMake has finished configuring  
+3. Set **Gear** as the startup project (if not already selected automatically)  
+4. Start debugging → the app should launch on the Raspberry Pi (visible in the VNC session) and you can debug remotely
 
 ---
 
@@ -102,10 +137,36 @@ It will include setup instructions for compilers, CMake, and local debugging wit
 
 ---
 
-## Local building & debugging on Linux (planned)
+## Local building & debugging on Linux
 
-This section will cover how to build and debug GEAR natively on Linux.  
-It will include setup instructions for compilers, CMake, OpenGL/X11 dependencies, and local debugging with `gdb`.
+These steps assume that all prerequisites described in  
+[Remote Debugging with Visual Studio 2022 → Raspberry Pi Setup](#raspberry-pi-setup)  
+have already been installed (compiler, build tools, OpenGL/X11/Wayland dependencies, etc.).
+
+### Example build steps (on the Raspberry Pi)
+
+```bash
+# Create the "Projects" directory in your home folder if it doesn't exist, then navigate into it
+mkdir -p ~/Projects && cd ~/Projects
+
+# Clone the GitHub repository into a new folder called "Gear"
+git clone https://github.com/adamsepp/GEAR.git Gear
+
+# Navigate into the newly cloned project directory
+cd Gear
+
+# Create a separate build directory and move into it
+mkdir build && cd build
+
+# Configure the project with CMake in Debug mode
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug
+
+# Compile the project using all available CPU cores
+make -j$(nproc)
+
+# Run the compiled application
+./bin/Gear
+```
 
 ---
 

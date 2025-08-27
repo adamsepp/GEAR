@@ -175,12 +175,13 @@ namespace gear
 		// Install callbacks = true is fine unless you manage GLFW callbacks yourself.
 		ImGui_ImplGlfw_InitForOpenGL(window, /*install_callbacks=*/true);
 
+		// Select GLSL version *after* context creation
 #ifdef __APPLE__
-		// You created an OpenGL 3.2 Core context on macOS -> GLSL 150 is correct.
-		ImGui_ImplOpenGL3_Init("#version 150");
+		ImGui_ImplOpenGL3_Init("#version 150");      // GL 3.2 Core
+#elif defined(__linux__) && (defined(__arm__) || defined(__aarch64__))
+		ImGui_ImplOpenGL3_Init("#version 300 es");   // GLES 3.1
 #else
-		// Most other platforms here use GL 3.3 Core -> GLSL 330
-		ImGui_ImplOpenGL3_Init("#version 330");
+		ImGui_ImplOpenGL3_Init("#version 330 core"); // GL 3.3 Core
 #endif
 
 		// Register all default menues

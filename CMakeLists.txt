@@ -25,10 +25,17 @@ include(FetchContent)
 
 # GLFW
 if(APPLE)
-    # keine X11/Wayland Flags auf macOS
+    # No X11/Wayland Flags on macOS
 elseif(UNIX) # Linux
-    set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+    # Ensure wayland-scanner is found (VS Remote builds often lose PATH)
+    if(NOT WAYLAND_SCANNER_EXECUTABLE)
+        find_program(WAYLAND_SCANNER_EXECUTABLE wayland-scanner)
+        if(NOT WAYLAND_SCANNER_EXECUTABLE)
+            set(WAYLAND_SCANNER_EXECUTABLE "/usr/bin/wayland-scanner" CACHE FILEPATH "Wayland scanner tool")
+        endif()
+    endif()
 endif()
 FetchContent_Declare(
     glfw

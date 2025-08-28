@@ -95,7 +95,6 @@ Afterwards, connect using **Real VNC Viewer** for the desktop, or **PowerShell S
 
 ```bash
 sudo apt update
-sudo apt upgrade -y   # optional, recommended on fresh installations
 
 # Compiler & Build Tools
 sudo apt install -y build-essential cmake ninja-build git pkg-config
@@ -104,10 +103,10 @@ sudo apt install -y build-essential cmake ninja-build git pkg-config
 sudo apt install -y gdb gdbserver rsync
 
 # OpenGL / X11 dependencies (required for GLFW + ImGui)
-sudo apt install -y   libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev   libgl1-mesa-dev libgl1-mesa-dri mesa-utils
+sudo apt install -y libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libgl1-mesa-dri mesa-utils
 
 # Wayland support (only if you really want to use Wayland)
-sudo apt install -y   wayland-protocols libwayland-dev libxkbcommon-dev
+sudo apt install -y wayland-protocols libwayland-dev libxkbcommon-dev
 
 # xxd for converting fonts into C/C++ headers
 sudo apt install -y xxd

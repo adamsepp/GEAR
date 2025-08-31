@@ -68,7 +68,7 @@
       "generator": "Unix Makefiles",
       "configurationType": "Debug",
       "inheritEnvironments": [ "linux_x64" ],
-      "remoteMachineName": "192.168.0.75",
+      "remoteMachineName": "raspberrypi.local",
       "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
       "remoteCMakeListsRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/src",
       "remoteBuildRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/build/${name}",

@@ -37,7 +37,7 @@
       "project": "CMakeLists.txt",
       "projectTarget": "Gear",
 
-      "remoteMachineName": "${env:GEAR_REMOTE_RPI:adamsepp@192.168.0.75}",
+      "remoteMachineName": "${env:GEAR_REMOTE_RPI:adamsepp@raspberrypi.local}",
       "program": "${remoteBuildRoot}/bin/Gear",
       "currentDir": "${remoteBuildRoot}/bin",
 

@@ -23,6 +23,12 @@
 #ifdef __APPLE__
 #include "Platform/Mac/MacTitlebar.h"
 #endif
+#ifdef __linux__
+#include <unistd.h>
+#include <linux/limits.h>
+#include <filesystem>
+#include <fstream>
+#endif
 
 static void glfwErrorCallback(int error, const char* description)
 {
@@ -42,7 +48,7 @@ namespace // internal linkage
 
 	void SetWindowIcons(GLFWwindow* window)
 	{
-#ifndef __APPLE__
+#ifdef _WIN32
 		std::vector<GLFWimage> icons;
 		auto i16 = MakeImage(Icon16x16, Icon16x16_len);
 		auto i32 = MakeImage(Icon32x32, Icon32x32_len);
@@ -57,6 +63,64 @@ namespace // internal linkage
 			glfwSetWindowIcon(window, static_cast<int>(icons.size()), icons.data());
 			for (auto& im : icons)
 				stbi_image_free(im.pixels);
+		}
+#endif
+	}
+
+	static void InstallLinuxDesktopFile(const std::string& exePath)
+	{
+#ifdef __linux__
+		namespace fs = std::filesystem;
+
+		auto write_file = [](const fs::path& p, const unsigned char* data, size_t len) {
+			fs::create_directories(p.parent_path());
+			std::ofstream out(p, std::ios::binary);
+			out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(len));
+			};
+
+		auto installTo = [&](const fs::path& base)
+			{
+				// Icons
+				write_file(base / "icons/hicolor/16x16/apps/gear.png", Icon16x16, Icon16x16_len);
+				write_file(base / "icons/hicolor/32x32/apps/gear.png", Icon32x32, Icon32x32_len);
+				write_file(base / "icons/hicolor/48x48/apps/gear.png", Icon48x48, Icon48x48_len);
+				// Falls vorhanden:
+				// write_file(base / "icons/hicolor/128x128/apps/gear.png", Icon128, Icon128_len);
+				// write_file(base / "icons/hicolor/256x256/apps/gear.png", Icon256, Icon256_len);
+
+				// .desktop
+				fs::create_directories(base / "applications");
+				fs::path desktopFile = base / "applications/gear.desktop";
+				std::ofstream desk(desktopFile);
+				desk <<
+					R"([Desktop Entry]
+Version=1.0
+Name=Gear
+Comment=My cross-platform application
+Exec=)" << exePath << R"( %u
+TryExec=)" << exePath << R"(
+Icon=gear
+Terminal=false
+Type=Application
+Categories=Utility;Development;
+)";
+
+				// (optional) Caches aktualisieren – Fehler egal
+				std::string baseStr = base.string();
+				std::string cmd =
+					"update-desktop-database " + (baseStr + "/applications") + " >/dev/null 2>&1 || true; "
+					"gtk-update-icon-cache -f " + (baseStr + "/icons/hicolor") + " >/dev/null 2>&1 || true; "
+					"xdg-desktop-menu forceupdate >/dev/null 2>&1 || true";
+				std::system(cmd.c_str());
+			};
+
+		fs::path userBase = fs::path(getenv("HOME")) / ".local/share";
+		installTo(userBase);
+
+		fs::path systemBase = "/usr/share";
+		if (access(systemBase.c_str(), W_OK) == 0) {
+			try { installTo(systemBase); }
+			catch (...) {}
 		}
 #endif
 	}
@@ -108,13 +172,21 @@ namespace gear
 		glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_TRUE);
 
 #elif defined(__linux__)
+
+#ifdef GLFW_WAYLAND_APP_ID
+		// Wayland: Set window app_id to match the .desktop filename ("gear.desktop").
+		// Without this, the compositor cannot associate the running window with
+		// the desktop entry, so no icon will be shown in the taskbar/overview.
+		glfwWindowHintString(GLFW_WAYLAND_APP_ID, "gear");
+#endif
+
 #if defined(__arm__) || defined(__aarch64__)
-	// --- Linux on ARM/ARM64 (e.g. Raspberry Pi): GLES 3.1 ---
+		// --- Linux on ARM/ARM64 (e.g. Raspberry Pi): GLES 3.1 ---
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 #else
-	// --- Linux on Desktop (x86/x64): Desktop GL 3.3 ---
+		// --- Linux on Desktop (x86/x64): Desktop GL 3.3 ---
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -189,7 +261,7 @@ namespace gear
 		glfwMakeContextCurrent(window);
 		glfwSwapInterval(1); // Enable VSync
 
-#ifndef __APPLE__
+#ifdef _WIN32
 		SetWindowIcons(window); // only works on Win/Linux, ignored by macOS
 #endif
 
@@ -200,6 +272,18 @@ namespace gear
 		MacSetupMenuAndTitlebar(window);
 		MacSyncMenusFromGuiLayer(&guiLayer);
 #endif
+
+#ifdef __linux__
+		// Get path to binaries
+		char exePath[PATH_MAX];
+		ssize_t len = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+		if (len != -1)
+		{
+			exePath[len] = '\0';
+			InstallLinuxDesktopFile(std::string(exePath));
+		}
+#endif
+
 	}
 
 	void Application::Shutdown()

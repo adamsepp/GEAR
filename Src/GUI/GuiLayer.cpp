@@ -158,6 +158,8 @@ namespace gear
 		// macOS-native text navigation and ⌘ shortcuts
 		io.ConfigMacOSXBehaviors = true;
 		titleBarHeight = 28.0f; // Mac standard
+#elif defined(__linux__)
+		titleBarHeight = 0.0f; // use classic style with normal menue
 #endif
 		// --- Style ---
 		ApplyCustomDarkTheme();
@@ -178,7 +180,7 @@ namespace gear
 		// Select GLSL version *after* context creation
 #ifdef __APPLE__
 		ImGui_ImplOpenGL3_Init("#version 150");      // GL 3.2 Core
-#elif defined(__linux__) && (defined(__arm__) || defined(__aarch64__))
+#elif defined(__linux__)
 		ImGui_ImplOpenGL3_Init("#version 300 es");   // GLES 3.1
 #else
 		ImGui_ImplOpenGL3_Init("#version 330 core"); // GL 3.3 Core
@@ -313,13 +315,49 @@ namespace gear
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(3.0f, 3.0f));
 
-		ImGui::Begin("MainDockSpace", nullptr, windowFlags);
-		ImGui::PopStyleVar(1);
+#if defined(__linux__)
+		// Linux: draw classic menue in Dock space
 
-		// Create the actual dock space
+		ImGui::Begin("MainDockSpace", nullptr, windowFlags | ImGuiWindowFlags_MenuBar);
+
+		if (ImGui::BeginMenuBar())
+		{
+			for (const auto& menu : menus)
+			{
+				if (ImGui::BeginMenu(menu.name.c_str()))
+				{
+					for (const auto& item : menu.items)
+					{
+						if (item.isSeparator)
+						{
+							ImGui::Separator();
+							continue;
+						}
+						const char* sc = item.shortcut ? item.shortcut->c_str() : nullptr;
+						if (item.togglePtr)
+						{
+							ImGui::MenuItem(item.label.c_str(), sc, item.togglePtr);
+						}
+						else if (ImGui::MenuItem(item.label.c_str(), sc))
+						{
+							if (item.action)
+								item.action();
+						}
+					}
+					ImGui::EndMenu();
+				}
+			}
+			ImGui::EndMenuBar();
+		}
+
+#else
+		ImGui::Begin("MainDockSpace", nullptr, windowFlags);
+#endif
 		ImGuiID dockspaceID = ImGui::GetID("MyDockSpace");
 		ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f));
 		ImGui::End();
+
+		ImGui::PopStyleVar(1);
 
 		// Initialize docking layout once
 		static bool dockInitialized = false;

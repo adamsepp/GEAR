@@ -87,7 +87,6 @@ sudo raspi-config
 ```
 - Interface Options → SSH → YES  
 - Interface Options → VNC → YES  
-- Advanced Options → Wayland → Labwc (default compositor if Wayland is used)
 
 Afterwards, connect using **Real VNC Viewer** for the desktop, or **PowerShell SSH** from Windows.
 

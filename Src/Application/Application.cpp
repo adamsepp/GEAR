@@ -32,7 +32,7 @@
 
 static void glfwErrorCallback(int error, const char* description)
 {
-	LOG_ERROR("Main", "GLFW ERROR CODE: " + std::to_string(error) + " DESCRIPTION: " + std::string(description));
+	LOG1_ERROR("Main", "GLFW ERROR CODE: " + std::to_string(error) + " DESCRIPTION: " + std::string(description));
 }
 
 namespace // internal linkage

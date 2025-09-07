@@ -39,15 +39,15 @@ elseif(UNIX) # Linux
 endif()
 FetchContent_Declare(
     glfw
-    GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG 3.4
+    GIT_REPOSITORY https://github.com/adamsepp/glfw.git
+    GIT_TAG fix/dpi-fallback-2764   # current fix until PR is through
 )
 
 # ImGui
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG docking
+    GIT_TAG v1.92.2b-docking
 )
 
 # fmt (C++ formatting library)

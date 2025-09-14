@@ -25,8 +25,6 @@ real-time dashboards, and logging.
   <em>Linux title bar</em>
 </p>
 
----
-
 ## Features
 
 * Modular structure: `Application/`, `Logger/`, `GUI/`, `Tests/`

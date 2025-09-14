@@ -4,15 +4,26 @@
   GEAR – General Execution & Application Runtime
 </h1>
 
-<p align="left">
-  <img src="./Docs/Images/Demo.gif" alt="GEAR Demo" width="600">
-</p>
-
 **GEAR** is a modular C\+\+20 application framework that uses [Dear ImGui](https://github.com/ocornut/imgui),
 [ImPlot](https://github.com/epezent/implot) and [GLFW](https://github.com/glfw/glfw) to provide a minimal,
 UI-driven interface without relying on the console.  
 It’s designed as a sandbox and runtime core for experimenting with modern C++ features, GUI rendering,
 real-time dashboards, and logging.
+
+<p align="left">
+  <img src="./Docs/Images/Demo.gif" alt="GEAR Demo" width="600">
+    <em>Windows live demo</em>
+</p>
+
+<p align="left">
+  <img src="./Docs/Images/DemoMacTitlebar.png" alt="GEAR Demo macOS Titlebar" width="600">
+  <em>MacOS title bar</em>
+</p>
+
+<p align="left">
+  <img src="./Docs/Images/DemoLinuxTitlebar.png" alt="GEAR Demo Linux Titlebar" width="600">
+  <em>Linux title bar</em>
+</p>
 
 ---
 

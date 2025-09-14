@@ -11,6 +11,7 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#include "implot.h"
 
 #ifdef _WIN32
 #include "Platform/Windows/WinBorderless.h"
@@ -71,6 +72,7 @@ namespace gear
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		ImPlot::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 		// --- Fonts ---
@@ -200,6 +202,7 @@ namespace gear
 		}
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
+		ImPlot::DestroyContext();
 		ImGui::DestroyContext();
 	}
 
@@ -393,6 +396,9 @@ namespace gear
 		if (showImGuiDemoWindow)
 			ImGui::ShowDemoWindow(&showImGuiDemoWindow);
 
+		if (showImPlotDemoWindow)
+			ImPlot::ShowDemoWindow(&showImPlotDemoWindow);
+
 		if (showIconListViewerWindow)
 			ShowIconListView(&showIconListViewerWindow);
 	}
@@ -429,6 +435,7 @@ namespace gear
 
 		MenuDef viewMenu{ "View", {
 			MenuItem{ "Show ImGui Demo", std::nullopt,       [this]() { showImGuiDemoWindow = true; }, false },
+			MenuItem{ "Show ImPlot Demo", std::nullopt,      [this]() { showImPlotDemoWindow = true; }, false },
 			MenuItem{ "Show Icon List Viewer", std::nullopt, [this]() { showIconListViewerWindow = true; }, false }
 		} };
 
@@ -931,13 +938,72 @@ namespace gear
 	{
 		ImGui::Begin("Main");
 
-		ImGui::SeparatorText("Font Tests");
+		ImGui::SeparatorText("Plotting Tests");
 
-		ImGui::PushFont(fontBold);
-		ImGui::Text("Font bold example");
-		ImGui::PopFont();
+		// --- static globals for demo ---
+		static std::vector<double> xs, ys1, ys2;
+		static std::mutex data_mutex;
+		static std::atomic<bool> running{ false };
+		static std::thread worker;
 
-		ImGui::Text("%s Regular + Icon", ICON_FA_LIST_UL);
+		// start worker once
+		if (!running) {
+			running = true;
+			worker = std::thread([&]() {
+				double t = 0.0;
+				const double dt = 0.02;
+				const int max_points = 500;
+
+				while (running) {
+					t += dt;
+					double a = std::sin(t * 2.0) + 0.1 * ((std::rand() % 2000) / 1000.0 - 1.0);
+					double b = 0.5 * std::cos(t * 1.5) + 0.5;
+
+					{
+						std::lock_guard<std::mutex> lock(data_mutex);
+						xs.push_back(t);
+						ys1.push_back(a);
+						ys2.push_back(b);
+						if ((int)xs.size() > max_points) {
+							xs.erase(xs.begin());
+							ys1.erase(ys1.begin());
+							ys2.erase(ys2.begin());
+						}
+					}
+
+					std::this_thread::sleep_for(std::chrono::milliseconds(20));
+				}
+				});
+		}
+
+		// copy data under lock
+		std::vector<double> local_xs, local_ys1, local_ys2;
+		{
+			std::lock_guard<std::mutex> lock(data_mutex);
+			local_xs = xs;
+			local_ys1 = ys1;
+			local_ys2 = ys2;
+		}
+
+		// plot
+		if (!local_xs.empty()) {
+			if (ImPlot::BeginPlot("Live Signals", ImVec2(-1, 200))) {
+				ImPlot::SetupAxes("Time [s]", "Value");
+				double tmax = local_xs.back();
+				ImPlot::SetupAxisLimits(ImAxis_X1, tmax - 5.0, tmax, ImGuiCond_Always);
+				ImPlot::PlotLine("Signal A", local_xs.data(), local_ys1.data(), (int)local_xs.size());
+				ImPlot::PlotLine("Signal B", local_xs.data(), local_ys2.data(), (int)local_xs.size());
+				ImPlot::EndPlot();
+			}
+
+			static double log_accum = 0.0;
+			log_accum += ImGui::GetIO().DeltaTime;
+			if (log_accum > 1.0) {
+				log_accum = 0.0;
+				LOG_DEBUG("t={:.2f} | A={:.3f}, B={:.3f}",
+					local_xs.back(), local_ys1.back(), local_ys2.back());
+			}
+		}
 
 		ImGui::SeparatorText("Logging Tests");
 
@@ -1075,6 +1141,17 @@ namespace gear
 		}
 
 		ImGui::End();
+
+		// cleanup when program ends (once)
+		static bool cleanup_registered = false;
+		if (!cleanup_registered) {
+			cleanup_registered = true;
+			atexit([] {
+				running = false;
+				if (worker.joinable())
+					worker.join();
+				});
+		}
 	}
 
 	void GuiLayer::ShowLoggerWindow()

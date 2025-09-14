@@ -50,6 +50,13 @@ FetchContent_Declare(
     GIT_TAG v1.92.2b-docking
 )
 
+# ImPlot
+FetchContent_Declare(
+    implot
+    GIT_REPOSITORY https://github.com/epezent/implot.git
+    GIT_TAG master
+)
+
 # fmt (C++ formatting library)
 FetchContent_Declare(
     fmt
@@ -76,7 +83,7 @@ FetchContent_Declare(
 )
 
 # Fetch all declared content
-FetchContent_MakeAvailable(glfw imgui fmt stb googletest)
+FetchContent_MakeAvailable(glfw imgui implot fmt stb googletest)
 
 # -------------------------------
 # macOS: Force .m files of GLFW to be Objective-C, not Objective-C++

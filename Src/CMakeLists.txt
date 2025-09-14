@@ -7,6 +7,11 @@ file(GLOB IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
+# ImPlot sources
+file(GLOB IMPLOT_SOURCES
+    ${implot_SOURCE_DIR}/*.cpp
+)
+
 # Source files excluding main.cpp
 set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
@@ -14,6 +19,7 @@ set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
     ${IMGUI_SOURCES}
+    ${IMPLOT_SOURCES}
 )
 
 set(CPP_GEAR_HEADERS
@@ -75,6 +81,7 @@ target_include_directories(GearLib PUBLIC
     ${CMAKE_SOURCE_DIR}/Src
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
+    ${implot_SOURCE_DIR}
     ${glfw_SOURCE_DIR}/include
     ${stb_SOURCE_DIR}
 )

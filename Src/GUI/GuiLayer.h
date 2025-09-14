@@ -61,6 +61,7 @@ namespace gear
 		bool titleBarAllowDrag = false;
 
 		bool showImGuiDemoWindow = false;
+		bool showImPlotDemoWindow = false;
 		bool showIconListViewerWindow = false;
 
 		// Menu-Registry

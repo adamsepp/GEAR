@@ -271,7 +271,7 @@ namespace gear
 		drawFlags = ImDrawFlags_RoundCornersAll;
 #else
 		// Windows / others: rounded unless maximized
-		bool isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+		isMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
 		rounding = isMaximized ? 0.0f : 8.0f;
 		drawFlags = isMaximized ? ImDrawFlags_None : ImDrawFlags_RoundCornersAll;
 #endif

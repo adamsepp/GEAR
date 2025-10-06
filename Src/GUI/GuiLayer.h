@@ -4,6 +4,8 @@
 #include <vector>
 #include <optional>
 
+#include "Platform/WindowRegistry.h"
+
 struct GLFWwindow;
 
 namespace gear
@@ -67,11 +69,7 @@ namespace gear
 		// Menu-Registry
 		std::vector<MenuDef> menus;
 
-		// Helper to move / resize window
-		bool shouldRestoreWindow = false;
-		bool shouldMoveWindow = false;
-		int pendingMoveX = 0, pendingMoveY = 0;
-		bool shouldResizeWindow = false;
-		int pendingResizeW = 0, pendingResizeH = 0;
+		// Window management
+		WindowRegistry windowRegistry;
 	};
 }

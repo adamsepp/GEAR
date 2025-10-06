@@ -209,6 +209,14 @@ namespace gear
 	void GuiLayer::BeginFrame(GLFWwindow* window)
 	{
 		// ------------------------------------------------------------
+		// Apply pending window move/resize *before* starting the ImGui
+		// frame. ImGui reads and caches window state at NewFrame(),
+		// so changes after that would cause visual glitches or offset
+		// layout during resizing or dragging.
+		// ------------------------------------------------------------
+		windowRegistry.ApplyAllPendingOps();
+
+		// ------------------------------------------------------------
 		// Clear the framebuffer with a fully transparent background.
 		// This is necessary when using a transparent GLFW window
 		// (glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE))
@@ -216,29 +224,6 @@ namespace gear
 		// ------------------------------------------------------------
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // RGBA: fully transparent
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// ------------------------------------------------------------
-		// Apply pending window move/resize *before* starting the ImGui
-		// frame. ImGui reads and caches window state at NewFrame(),
-		// so changes after that would cause visual glitches or offset
-		// layout during resizing or dragging.
-		// ------------------------------------------------------------
-		if (shouldRestoreWindow)
-		{
-			if (glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE)
-				glfwRestoreWindow(window); // break maximized state
-			shouldRestoreWindow = false;
-		}
-		if (shouldMoveWindow)
-		{
-			glfwSetWindowPos(window, pendingMoveX, pendingMoveY);
-			shouldMoveWindow = false;
-		}
-		if (shouldResizeWindow)
-		{
-			glfwSetWindowSize(window, pendingResizeW, pendingResizeH);
-			shouldResizeWindow = false;
-		}
 
 		// ------------------------------------------------------------
 		// Begin a new ImGui frame
@@ -547,6 +532,8 @@ namespace gear
 	void GuiLayer::RenderCustomTitleBar(GLFWwindow* window)
 	{
 #ifdef _WIN32
+		auto& windowState = windowRegistry.GetState(window);
+
 		// DPI-aware values
 		float dpiScale = ImGui::GetIO().DisplayFramebufferScale.y;
 		float padding = 8.0f * dpiScale;
@@ -720,7 +707,7 @@ namespace gear
 				if (clicked)
 				{
 					if (isMaximized)
-						shouldRestoreWindow = true; // this should trigger restore to custom size
+						windowState.shouldRestore = true; // this should trigger restore to custom size
 					else
 						glfwMaximizeWindow(window);
 				}
@@ -812,15 +799,15 @@ namespace gear
 			if (isMaximized)
 			{
 				// Make sure to restore maximized first
-				shouldRestoreWindow = true;
+				windowState.shouldRestore = true;
 
-				shouldMoveWindow = true;
-				pendingMoveX = winPosX;
-				pendingMoveY = winPosY;
+				windowState.shouldMove = true;
+				windowState.pendingMoveX = winPosX;
+				windowState.pendingMoveY = winPosY;
 
-				shouldResizeWindow = true;
-				pendingResizeW = winSizeX;
-				pendingResizeH = winSizeY;
+				windowState.shouldResize = true;
+				windowState.pendingResizeW = winSizeX;
+				windowState.pendingResizeH = winSizeY;
 			}
 		}
 
@@ -851,14 +838,14 @@ namespace gear
 
 			if (activeEdge == Left || activeEdge == Top || activeEdge == TopLeft || activeEdge == TopRight || activeEdge == BottomLeft)
 			{
-				shouldMoveWindow = true;
-				pendingMoveX = newX;
-				pendingMoveY = newY;
+				windowState.shouldMove = true;
+				windowState.pendingMoveX = newX;
+				windowState.pendingMoveY = newY;
 			}
 
-			shouldResizeWindow = true;
-			pendingResizeW = newW;
-			pendingResizeH = newH;
+			windowState.shouldResize = true;
+			windowState.pendingResizeW = newW;
+			windowState.pendingResizeH = newH;
 		}
 
 		if (isResizing && !ImGui::IsMouseDown(ImGuiMouseButton_Left))

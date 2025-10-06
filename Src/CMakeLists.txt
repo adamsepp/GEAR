@@ -18,6 +18,7 @@ set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Platform/WindowRegistry.cpp
     ${IMGUI_SOURCES}
     ${IMPLOT_SOURCES}
 )
@@ -31,6 +32,7 @@ set(CPP_GEAR_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogToFile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/CircularLogBuffer.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Platform/WindowRegistry.h
 )
 
 # ---- Platform-specific sources (added) ----

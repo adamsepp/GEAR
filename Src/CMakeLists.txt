@@ -17,7 +17,6 @@ set(CPP_GEAR_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/Application/Application.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GearImGui.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Platform/WindowRegistry.cpp
     ${IMGUI_SOURCES}
@@ -29,7 +28,6 @@ set(CPP_GEAR_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiLayer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiIconListViewer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GuiMath.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/GUI/GearImGui.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/Logger.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogMessage.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Logger/LogToFile.h

@@ -1,4 +1,4 @@
-name: Cpp CI
+name: C++ CI
 
 on:
   push:
@@ -9,36 +9,79 @@ on:
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # Linux: GCC
+          - os: ubuntu-latest
+            compiler: gcc
+          # Linux: Clang
+          - os: ubuntu-latest
+            compiler: clang
+          # macOS: AppleClang
+          - os: macos-latest
+            compiler: appleclang
+          # Windows: MSVC
+          - os: windows-latest
+            compiler: msvc
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install dependencies (Ubuntu only)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build \
-          libx11-dev libxrandr-dev libxinerama-dev \
-          libxcursor-dev libxi-dev \
-          libgl1-mesa-dev \
-          libwayland-dev wayland-protocols libxkbcommon-dev
+      # --- Linux setup --------------------------------------------------------
+      - name: 🛠️ Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build \
+            libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxi-dev \
+            libgl1-mesa-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            sudo apt-get install -y clang
+          fi
 
-    - name: Install dependencies (macOS only)
-      if: runner.os == 'macOS'
-      run: brew install ninja
+      # --- macOS setup --------------------------------------------------------
+      - name: 🍎 Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
 
-    - name: Setup CMake
-      uses: lukka/get-cmake@latest
+      # --- Windows setup ------------------------------------------------------
+      - name: 🪟 Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Configure with CMake
-      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      # --- Install latest CMake ----------------------------------------------
+      - name: 🧩 Setup CMake
+        uses: lukka/get-cmake@latest
 
-    - name: Build with Ninja
-      run: cmake --build build --config Release
+      # --- Configure ----------------------------------------------------------
+      - name: ⚙️ Configure CMake
+        run: |
+          echo "Compiler: ${{ matrix.compiler }}"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            if [ "${{ matrix.compiler }}" = "clang" ]; then
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_COMPILER=clang \
+                -DCMAKE_CXX_COMPILER=clang++
+            else
+              cmake -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release
+            fi
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            cmake -B build -G "Ninja Multi-Config" -DCMAKE_BUILD_TYPE=Release
+          fi
 
-    - name: Run tests
-      run: ctest --test-dir build --output-on-failure
+      # --- Build --------------------------------------------------------------
+      - name: 🧱 Build
+        run: cmake --build build --config Release
+
+      # --- Test ---------------------------------------------------------------
+      - name: 🧪 Run tests
+        run: ctest --test-dir build --output-on-failure

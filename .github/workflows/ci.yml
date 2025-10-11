@@ -27,11 +27,16 @@ jobs:
             compiler: msvc
 
     steps:
-      - name: 🧾 Checkout repository
+      # -------------------------------
+      # 🧾 Checkout repository
+      # -------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Linux setup --------------------------------------------------------
-      - name: 🛠️ Install dependencies (Linux)
+      # -------------------------------
+      # 🛠️ Install dependencies (Linux)
+      # -------------------------------
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -43,25 +48,37 @@ jobs:
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             sudo apt-get install -y clang
           fi
+        shell: bash
 
-      # --- macOS setup --------------------------------------------------------
-      - name: 🍎 Install dependencies (macOS)
+      # -------------------------------
+      # 🍎 Install dependencies (macOS)
+      # -------------------------------
+      - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: brew install ninja
+        shell: bash
 
-      # --- Windows setup ------------------------------------------------------
-      - name: 🪟 Setup MSVC environment (Windows)
+      # -------------------------------
+      # 🪟 Setup MSVC environment (Windows)
+      # -------------------------------
+      - name: Setup MSVC environment
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      # --- Install latest CMake ----------------------------------------------
-      - name: 🧩 Setup CMake
+      # -------------------------------
+      # 🧩 Setup latest CMake
+      # -------------------------------
+      - name: Setup CMake
         uses: lukka/get-cmake@latest
 
-      # --- Configure ----------------------------------------------------------
-      - name: ⚙️ Configure CMake
+      # -------------------------------
+      # ⚙️ Configure project
+      # -------------------------------
+      - name: Configure with CMake
         run: |
-          echo "Compiler: ${{ matrix.compiler }}"
+          echo "🧰 OS: $RUNNER_OS"
+          echo "🧰 Compiler: ${{ matrix.compiler }}"
+
           if [ "$RUNNER_OS" = "Linux" ]; then
             if [ "${{ matrix.compiler }}" = "clang" ]; then
               cmake -B build -G Ninja \
@@ -77,11 +94,18 @@ jobs:
           elif [ "$RUNNER_OS" = "Windows" ]; then
             cmake -B build -G "Ninja Multi-Config" -DCMAKE_BUILD_TYPE=Release
           fi
+        shell: bash
 
-      # --- Build --------------------------------------------------------------
-      - name: 🧱 Build
+      # -------------------------------
+      # 🧱 Build project
+      # -------------------------------
+      - name: Build with CMake
         run: cmake --build build --config Release
+        shell: bash
 
-      # --- Test ---------------------------------------------------------------
-      - name: 🧪 Run tests
+      # -------------------------------
+      # 🧪 Run tests
+      # -------------------------------
+      - name: Run tests
         run: ctest --test-dir build --output-on-failure
+        shell: bash

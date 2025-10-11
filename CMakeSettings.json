@@ -96,6 +96,40 @@
           "value": "ON"
         }
       ]
-    }
+    },
+	{
+	  "name": "Raspi-Clang-Debug",
+	  "generator": "Unix Makefiles",
+	  "configurationType": "Debug",
+	  "inheritEnvironments": [ "linux_x64" ],
+	  "remoteMachineName": "raspberrypi.local",
+	  "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
+	  "remoteCMakeListsRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/src",
+	  "remoteBuildRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/build/${name}",
+	  "remoteInstallRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/install/${name}",
+	  "remoteCopySources": true,
+	  "remoteCopySourcesMethod": "rsync",
+	  "rsyncCommandArgs": "-t --delete",
+	  "remoteCopyBuildOutput": false,
+	  "startupProject": "Gear",
+	  "variables": [
+		{
+		  "name": "CMAKE_C_COMPILER",
+		  "value": "/usr/bin/clang"
+		},
+		{
+		  "name": "CMAKE_CXX_COMPILER",
+		  "value": "/usr/bin/clang++"
+		},
+		{
+		  "name": "CMAKE_CXX_STANDARD",
+		  "value": "20"
+		},
+		{
+		  "name": "CMAKE_EXPORT_COMPILE_COMMANDS",
+		  "value": "ON"
+		}
+	  ]
+	}
   ]
 }

@@ -55,6 +55,7 @@ namespace gear
 
 		void ShowMainWindow();
 		void ShowLoggerWindow();
+		void ShowPixelInspector(bool* p_open = nullptr);
 
 		// State
 		float titleBarHeight = 32.0f; // Windows Standard
@@ -65,6 +66,7 @@ namespace gear
 		bool showImGuiDemoWindow = false;
 		bool showImPlotDemoWindow = false;
 		bool showIconListViewerWindow = false;
+		bool showPixelInspector = false;
 
 		// Menu-Registry
 		std::vector<MenuDef> menus;

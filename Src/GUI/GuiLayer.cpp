@@ -386,6 +386,8 @@ namespace gear
 
 		if (showIconListViewerWindow)
 			ShowIconListView(&showIconListViewerWindow);
+
+		ShowPixelInspector(&showPixelInspector);
 	}
 
 	void GuiLayer::EndFrame(GLFWwindow* window)
@@ -421,7 +423,8 @@ namespace gear
 		MenuDef viewMenu{ "View", {
 			MenuItem{ "Show ImGui Demo", std::nullopt,       [this]() { showImGuiDemoWindow = true; }, false },
 			MenuItem{ "Show ImPlot Demo", std::nullopt,      [this]() { showImPlotDemoWindow = true; }, false },
-			MenuItem{ "Show Icon List Viewer", std::nullopt, [this]() { showIconListViewerWindow = true; }, false }
+			MenuItem{ "Show Icon List Viewer", std::nullopt, [this]() { showIconListViewerWindow = true; }, false },
+			MenuItem{ "Show Pixel Inspector", std::nullopt,  [this]() { showPixelInspector = true; }, false }
 		} };
 
 		menus.push_back(std::move(fileMenu));
@@ -1294,5 +1297,333 @@ namespace gear
 			ImGui::EndChild();
 		}
 		ImGui::End();
+	}
+
+	GLuint CaptureScreenRegionToTexture(const ImRect& rect)
+	{
+		const ImGuiViewport* vp = ImGui::GetMainViewport();
+
+		// --- Convert ImGui-space to framebuffer-space ---
+		float screenMinX = rect.Min.x - vp->Pos.x;
+		float screenMinY = rect.Min.y - vp->Pos.y;
+		float screenMaxX = rect.Max.x - vp->Pos.x;
+		float screenMaxY = rect.Max.y - vp->Pos.y;
+
+		int x = static_cast<int>(ImMin(screenMinX, screenMaxX));
+		int y = static_cast<int>(ImMin(screenMinY, screenMaxY));
+		int width = static_cast<int>(fabsf(screenMaxX - screenMinX));
+		int height = static_cast<int>(fabsf(screenMaxY - screenMinY));
+
+		if (width <= 0 || height <= 0)
+			return 0;
+
+		std::vector<unsigned char> pixels(width * height * 4);
+
+		// --- Convert Y for OpenGL’s bottom-up coordinate system ---
+		GLint viewport[4];
+		glGetIntegerv(GL_VIEWPORT, viewport);
+		int readY = viewport[3] - (y + height);
+
+		// --- Read pixels ---
+		glReadBuffer(GL_FRONT);
+		glReadPixels(x, readY, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+		// --- Create texture ---
+		GLuint texID = 0;
+		glGenTextures(1, &texID);
+		glBindTexture(GL_TEXTURE_2D, texID);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		return texID;
+	}
+
+	void GuiLayer::ShowPixelInspector(bool* p_open)
+	{
+		static bool openLast = false;
+		static bool selectionPhase = true;
+		static bool popupOpen = false;
+		static ImVec2 selectStart, selectEnd;
+		static GLuint capturedTexture = 0;
+		static float zoom = 3.0f;
+		static ImVec2 panOffset(0, 0);
+
+		// Measurement point
+		static bool pointSet = false;
+		static ImVec2 p1 = ImVec2(0, 0);
+
+		// Detect open / reset state
+		if (*p_open != openLast)
+		{
+			selectionPhase = true;
+			popupOpen = false;
+			pointSet = false;
+		}
+		openLast = *p_open;
+
+		// Cleanup when closed
+		if (!*p_open)
+		{
+			if (capturedTexture)
+			{
+				glDeleteTextures(1, &capturedTexture);
+				capturedTexture = 0;
+			}
+			selectStart = selectEnd = ImVec2(0, 0);
+			zoom = 3.0f;
+			panOffset = ImVec2(0, 0);
+			popupOpen = false;
+			pointSet = false;
+			return;
+		}
+
+		// ======================
+		// Selection Phase
+		// ======================
+		if (selectionPhase)
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+			ImVec2 mouse = ImGui::GetMousePos();
+			auto draw = ImGui::GetForegroundDrawList();
+
+			// Draw custom crosshair
+			draw->AddLine(ImVec2(mouse.x - 10, mouse.y), ImVec2(mouse.x + 10, mouse.y),
+				IM_COL32(255, 255, 0, 255), 1.0f);
+			draw->AddLine(ImVec2(mouse.x, mouse.y - 10), ImVec2(mouse.x, mouse.y + 10),
+				IM_COL32(255, 255, 0, 255), 1.0f);
+
+			// Update rectangle
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				selectStart = selectEnd = mouse;
+
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+				selectEnd = mouse;
+
+			// Normalize rectangle coordinates
+			ImVec2 min(ImMin(selectStart.x, selectEnd.x), ImMin(selectStart.y, selectEnd.y));
+			ImVec2 max(ImMax(selectStart.x, selectEnd.x), ImMax(selectStart.y, selectEnd.y));
+			ImRect rect(min, max);
+
+			bool rectValid = (rect.GetWidth() > 2 && rect.GetHeight() > 2);
+
+			// Capture when released
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && rectValid)
+			{
+				selectionPhase = false;
+				popupOpen = true;
+				pointSet = false; // reset measurement point
+
+				if (capturedTexture)
+				{
+					glDeleteTextures(1, &capturedTexture);
+					capturedTexture = 0;
+				}
+
+				capturedTexture = CaptureScreenRegionToTexture(rect);
+				selectStart = min;
+				selectEnd = max;
+
+				// --- Initialize default zoom/pan ---
+				float width = rect.GetWidth();
+				float height = rect.GetHeight();
+
+				const ImVec2 fixedWindowSize(800, 600);
+
+				// Compute fit-to-window zoom with 10% margin
+				float zoomX = (fixedWindowSize.x * 0.9f) / width;
+				float zoomY = (fixedWindowSize.y * 0.9f) / height;
+				zoom = ImMin(zoomX, zoomY);
+				zoom = ImClamp(zoom, 0.05f, 32.0f);
+
+				// Center image
+				ImVec2 imageSize(width * zoom, height * zoom);
+				panOffset.x = (fixedWindowSize.x - imageSize.x) * 0.5f;
+				panOffset.y = (fixedWindowSize.y - imageSize.y) * 0.5f;
+
+				ImGui::OpenPopup("Pixel Inspector");
+			}
+
+			// Draw selection rectangle
+			if (rectValid)
+				draw->AddRect(min, max, IM_COL32(255, 255, 0, 255), 0.0f, 0, 1.5f);
+		}
+
+		// ======================
+		// Modal Inspector Window
+		// ======================
+		if (popupOpen)
+		{
+			const ImVec2 fixedWindowSize(800, 600);
+			ImGui::SetNextWindowSize(fixedWindowSize, ImGuiCond_Always);
+			ImGui::SetNextWindowBgAlpha(0.95f);
+
+			ImGuiWindowFlags windowFlags =
+				ImGuiWindowFlags_NoCollapse |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse;
+
+			if (ImGui::BeginPopupModal("Pixel Inspector", p_open, windowFlags))
+			{
+				ImGui::Text("Mouse wheel to zoom, drag inside image to pan.                ");
+				ImGui::SameLine();
+				if (ImGui::Button("Recapture"))
+				{
+					if (capturedTexture)
+					{
+						glDeleteTextures(1, &capturedTexture);
+						capturedTexture = 0;
+					}
+					selectStart = selectEnd = ImVec2(0, 0);
+					popupOpen = false;
+					selectionPhase = true;
+					pointSet = false;
+				}
+				ImGui::Separator();
+
+				// Zoom level slider
+				ImGui::SliderFloat("Zoom", &zoom, 0.05f, 32.0f, "x%.2f", ImGuiSliderFlags_Logarithmic);
+
+				if (capturedTexture)
+				{
+					float width = ImAbs(selectEnd.x - selectStart.x);
+					float height = ImAbs(selectEnd.y - selectStart.y);
+					ImVec2 imageSize(width * zoom, height * zoom);
+
+					// ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+					ImGui::BeginChild("ImageRegion", ImVec2(0, 0), false,
+						ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar |
+						ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground);
+
+					bool hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+					ImVec2 mouse = ImGui::GetMousePos();
+					ImVec2 windowPos = ImGui::GetWindowPos();
+
+					// --- Zoom centered around mouse ---
+					if (hovered)
+					{
+						float wheel = ImGui::GetIO().MouseWheel;
+						if (wheel != 0.0f)
+						{
+							ImVec2 mouseInImage = ImVec2(mouse.x - windowPos.x - panOffset.x,
+								mouse.y - windowPos.y - panOffset.y);
+
+							float oldZoom = zoom;
+							zoom = ImClamp(zoom + wheel * 0.2f * zoom, 0.05f, 32.0f);
+
+							float scale = zoom / oldZoom;
+							panOffset.x -= (mouseInImage.x) * (scale - 1.0f);
+							panOffset.y -= (mouseInImage.y) * (scale - 1.0f);
+						}
+					}
+
+					// --- Panning ---
+					if (hovered && (ImGui::IsMouseDragging(ImGuiMouseButton_Left) || ImGui::IsMouseDragging(ImGuiMouseButton_Right)))
+					{
+						ImVec2 delta = ImGui::GetIO().MouseDelta;
+						panOffset.x += delta.x;
+						panOffset.y += delta.y;
+					}
+
+					// --- Draw image ---
+					ImGui::SetCursorPos(panOffset);
+					ImGui::Image((ImTextureID)(intptr_t)capturedTexture, imageSize, ImVec2(0, 1), ImVec2(1, 0));
+
+					// --- Measurement / crosshair logic ---
+					ImVec2 imageTopLeft = ImGui::GetItemRectMin();
+					ImVec2 imageBottomRight = ImGui::GetItemRectMax();
+					ImVec2 imageSizeRendered = ImVec2(imageBottomRight.x - imageTopLeft.x, imageBottomRight.y - imageTopLeft.y);
+
+					if (hovered)
+					{
+						ImVec2 rel = ImVec2(mouse.x - imageTopLeft.x, mouse.y - imageTopLeft.y);
+
+						// --- Rasterize mouse to integer pixel grid ---
+						ImVec2 pixelIndex(
+							ImClamp(floorf(rel.x / zoom), 0.0f, (imageSizeRendered.x / zoom) - 1.0f),
+							ImClamp(floorf(rel.y / zoom), 0.0f, (imageSizeRendered.y / zoom) - 1.0f)
+						);
+
+						// Pixel center in image space
+						ImVec2 pixelCenter = ImVec2(
+							(pixelIndex.x + 0.5f) * zoom,
+							(pixelIndex.y + 0.5f) * zoom
+						);
+
+						// --- Set P1 on click ---
+						if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+						{
+							p1 = pixelIndex;
+							pointSet = true;
+						}
+
+						auto draw = ImGui::GetWindowDrawList();
+
+						// --- Crosshair (current pixel) ---
+						ImVec2 pixelScreen = ImVec2(imageTopLeft.x + pixelCenter.x, imageTopLeft.y + pixelCenter.y);
+						draw->AddLine(ImVec2(pixelScreen.x, imageTopLeft.y), ImVec2(pixelScreen.x, imageBottomRight.y), IM_COL32(255, 255, 0, 100));
+						draw->AddLine(ImVec2(imageTopLeft.x, pixelScreen.y), ImVec2(imageBottomRight.x, pixelScreen.y), IM_COL32(255, 255, 0, 100));
+						draw->AddRect(
+							ImVec2(pixelScreen.x - zoom * 0.5f, pixelScreen.y - zoom * 0.5f),
+							ImVec2(pixelScreen.x + zoom * 0.5f, pixelScreen.y + zoom * 0.5f),
+							IM_COL32(255, 255, 0, 150)
+						);
+
+						// --- If reference point is set, draw its markers and measure ---
+						if (pointSet)
+						{
+							ImVec2 p1_screen = ImVec2(
+								imageTopLeft.x + (p1.x + 0.5f) * zoom,
+								imageTopLeft.y + (p1.y + 0.5f) * zoom
+							);
+
+							// Marker lines and pixel box
+							draw->AddLine(ImVec2(p1_screen.x, imageTopLeft.y), ImVec2(p1_screen.x, imageBottomRight.y), IM_COL32(255, 80, 80, 180));
+							draw->AddLine(ImVec2(imageTopLeft.x, p1_screen.y), ImVec2(imageBottomRight.x, p1_screen.y), IM_COL32(255, 80, 80, 180));
+							draw->AddRect(
+								ImVec2(p1_screen.x - zoom * 0.5f, p1_screen.y - zoom * 0.5f),
+								ImVec2(p1_screen.x + zoom * 0.5f, p1_screen.y + zoom * 0.5f),
+								IM_COL32(255, 100, 100, 255)
+							);
+
+							// Integer distance in pixels
+							ImVec2 delta = ImVec2(pixelIndex.x - p1.x, pixelIndex.y - p1.y);
+							float dist = sqrtf(delta.x * delta.x + delta.y * delta.y);
+
+							// Tooltip
+							ImGui::BeginTooltip();
+							ImGui::Text("Pixel Difference:");
+							ImGui::Separator();
+							ImGui::Text((const char*)u8"Δx = %.0f px", delta.x);
+							ImGui::Text((const char*)u8"Δy = %.0f px", delta.y);
+							ImGui::Separator();
+							ImGui::TextDisabled("Distance = %.2f px", dist);
+							ImGui::EndTooltip();
+						}
+					}
+
+					ImGui::EndChild();
+					//ImGui::PopStyleVar();
+				}
+				else
+				{
+					ImGui::Text("No capture available.");
+				}
+
+				ImGui::Separator();
+				if (ImGui::Button("Close"))
+				{
+					ImGui::CloseCurrentPopup();
+					popupOpen = false;
+					*p_open = false;
+					pointSet = false;
+				}
+
+				ImGui::EndPopup();
+			}
+		}
 	}
 }
